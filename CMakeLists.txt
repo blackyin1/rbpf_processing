@@ -134,7 +134,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 # add_dependencies(rbpf_mtt ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-#add_executable(gmm_map_server src/gmm_map_server.cpp)
+add_executable(metaroom_process_data src/metaroom_process_data.cpp)
 add_executable(process_detections src/process_detections.cpp)
 
 ## Add cmake target dependencies of the executable
@@ -148,6 +148,12 @@ add_executable(process_detections src/process_detections.cpp)
 #)
 
 target_link_libraries(process_detections
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(metaroom_process_data
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
