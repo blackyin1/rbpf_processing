@@ -14,7 +14,7 @@ def dimension_reduction(data_path):
 
     labels = feature_labels_dict['value0']
 
-    npzfile = np.load(os.path.join(data_path, "deep_features.npz"))
+    npzfile = np.load(os.path.join(data_path, "deep_rgb_features.npz"))
     features = npzfile['features']
 
     print "Computing tsne reduction..."

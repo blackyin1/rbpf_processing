@@ -31,6 +31,17 @@ struct DetectionData {
     }
 };
 
+pair<cv::Mat, cv::Mat> sweep_get_rgbd_at(const boost::filesystem::path& sweep_xml, size_t i)
+{
+    stringstream ss;
+    ss << "intermediate_cloud" << std::setfill('0') << std::setw(4) << i << ".pcd";
+    boost::filesystem::path cloud_path = sweep_xml.parent_path() / ss.str();
+    CloudT::Ptr cloud(new CloudT);
+    pcl::io::loadPCDFile(cloud_path.string(), *cloud);
+    pair<cv::Mat, cv::Mat> images = SimpleXMLParser<PointT>::createRGBandDepthFromPC(cloud);
+    return images;
+}
+
 pair<vector<string>, vector<string> > process_sweep(const string& room_xml)
 {
     vector<string> images;
@@ -63,8 +74,12 @@ pair<vector<string>, vector<string> > process_sweep(const string& room_xml)
             archive_o(data);
         }
 
-        cv::Mat image = labels.objectImages[i](min_rect);
-        boost::filesystem::path image_path = obj_path / (string("image") + to_string(i) + ".jpeg");
+        size_t scan_index = labels.objectScanIndices[i];
+        pair<cv::Mat, cv::Mat> rgbd = sweep_get_rgbd_at(room_xml, scan_index);
+
+        //cv::Mat image = labels.objectImages[i](min_rect);
+        cv::Mat image = rgbd.first(min_rect);
+        boost::filesystem::path image_path = obj_path / (string("rgb_image") + to_string(i) + ".jpeg");
         cv::imwrite(image_path.string(), image);
         images.push_back(image_path.string());
     }
@@ -87,7 +102,7 @@ void process_sweeps(const string& sweep_folder)
         labels.insert(labels.end(), sweep_labels.begin(), sweep_labels.end());
     }
 
-    ofstream images_out((boost::filesystem::path(sweep_folder) / "feature_images.json").string());
+    ofstream images_out((boost::filesystem::path(sweep_folder) / "feature_rgb_images.json").string());
     {
         cereal::JSONOutputArchive archive_o(images_out);
         archive_o(images);

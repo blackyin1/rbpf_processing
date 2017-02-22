@@ -53,7 +53,7 @@ def extract_features(image_paths, verbose=False):
 
 def load_and_extract(model_path, data_path):
 
-    with open(os.path.join(data_path, "feature_images.json")) as data_file:
+    with open(os.path.join(data_path, "feature_rgb_images.json")) as data_file:
         feature_images_dict = json.load(data_file)
 
     images = feature_images_dict['value0']
@@ -64,7 +64,7 @@ def load_and_extract(model_path, data_path):
     create_graph(model_path)
     features = extract_features(images, verbose=True)
 
-    np.savez(os.path.join(data_path, "deep_features.npz"), features = features)
+    np.savez(os.path.join(data_path, "deep_rgb_features.npz"), features = features)
 
     print "Features: ", features.shape
 
