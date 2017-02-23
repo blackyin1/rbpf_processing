@@ -6,7 +6,7 @@ add_definitions(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp metaroom_xml_parser cereal eigen_cereal)
+find_package(catkin REQUIRED COMPONENTS roscpp metaroom_xml_parser cereal eigen_cereal eigen_conversions tf_conversions)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -14,6 +14,11 @@ find_package(catkin REQUIRED COMPONENTS roscpp metaroom_xml_parser cereal eigen_
 find_package(OpenCV REQUIRED)
 find_package(Qt4 REQUIRED)
 include(${QT_USE_FILE})
+
+find_package(PCL 1.6 REQUIRED COMPONENTS common io search visualization surface kdtree features surface segmentation octree filter keypoints)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -136,6 +141,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 ## Declare a C++ executable
 add_executable(metaroom_process_data src/metaroom_process_data.cpp)
 add_executable(process_detections src/process_detections.cpp)
+add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -157,6 +163,13 @@ target_link_libraries(metaroom_process_data
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(visualize_registered_sweeps
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 #############

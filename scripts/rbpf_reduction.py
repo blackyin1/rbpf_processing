@@ -60,10 +60,10 @@ def plot_reduction_class(data_path, labels):
     #np.array([ind for ind, key, val in ], dtype=int)
     for i, (key, val) in enumerate(label_dict.items()):
         inds = np.array([ind for ind, label in enumerate(labels) if label == key], dtype=int)
-        handles.append(plt.scatter(features[inds, 0], features[inds, 1], c=color_primitives[i], marker=markers[i], cmap=plt.cm.Spectral, s=100))
+        handles.append(plt.scatter(features[inds, 0], features[inds, 1], c=color_primitives[i], marker=markers[i], cmap=plt.cm.Spectral, s=130))
 
     handle_labels = [key for key, val in label_dict.items()]
-    plt.legend(handles, handle_labels, scatterpoints=1, loc='lower left', ncol=3, fontsize=8)
+    plt.legend(handles, handle_labels, scatterpoints=1, loc='lower left', ncol=2, fontsize=15)
 
     #for i in range(0, features.shape[0]):
     #    plt.scatter(features[i, 0], features[i, 1], c=color_primitives[i], marker=markers[i], cmap=plt.cm.Spectral, s=40)
