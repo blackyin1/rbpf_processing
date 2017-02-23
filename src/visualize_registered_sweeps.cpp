@@ -8,6 +8,7 @@
 #include <cereal/types/map.hpp>
 #include <pcl/visualization/pcl_visualizer.h>
 #include <tf_conversions/tf_eigen.h>
+#include <rbpf_processing/data_convenience.h>
 
 using namespace std;
 
@@ -17,103 +18,6 @@ using PathT = boost::filesystem::path;
 using PoseVec = vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >;
 using SweepT = semantic_map_load_utilties::IntermediateCloudCompleteData<PointT>;
 
-pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool backwards)
-{
-    //map<string, map<string, string> > loaded_file;
-    PathT sweep_folder = PathT(sweep_xml).parent_path();
-
-    PathT filename;
-	if (backwards) {
-	 	filename = sweep_folder / "back_relative_model_poses.xml";
-	}
-	else {
-		filename = sweep_folder / "relative_model_poses.xml";
-	}
-
-    cout << "Reading file: " << filename.string() << endl;
-
-    /*
-    std::ifstream in(filename.string());
-    {
-        cereal::XMLInputArchive archive_i(in);
-        archive_i(loaded_file);
-    }
-
-    for (const pair<string, map<string, string > >& p : loaded_file) {
-        cout << "Loaded map: " << p.first << endl;
-        for (const pair<string, string>& q : p.second) {
-            cout << "Loaded value: " << q.first << " with value: " << q.second << endl;
-        }
-    }
-    */
-
-    QFile file(filename.c_str());
-	if (!file.exists()){
-		cout << "Could not open file " << filename.string() << endl;
-		exit(-1);
-	}
-	file.open(QIODevice::ReadOnly);
-    QXmlStreamReader xmlReader(&file);
-
-    string previous_sweep_xml;
-    vector<string> frame_transform_strings;
-
-    while (!xmlReader.atEnd() && !xmlReader.hasError()) {
-        QXmlStreamReader::TokenType token = xmlReader.readNext();
-        if (token == QXmlStreamReader::StartDocument) {
-            continue;
-        }
-
-        if (xmlReader.hasError()) {
-            ROS_ERROR("XML error: %s",xmlReader.errorString().toStdString().c_str());
-            break;
-        }
-
-        if (token == QXmlStreamReader::StartElement) {
-            if (xmlReader.name() == "ComparedSweep") {
-                QXmlStreamAttributes attributes = xmlReader.attributes();
-                if (attributes.hasAttribute("Path")) {
-                    previous_sweep_xml = attributes.value("Path").toString().toStdString();
-                }
-                else {
-                    break;
-                }
-            }
-            else if (xmlReader.name() == "Poses") {
-                QXmlStreamAttributes attributes = xmlReader.attributes();
-                for (size_t i = 0; i < 17; ++i) {
-                    QString FrameAttribute = QString("Frame") + QString::number(i);
-                    if (attributes.hasAttribute(FrameAttribute)) {
-                        frame_transform_strings.push_back(attributes.value(FrameAttribute).toString().toStdString());
-                    }
-                }
-            }
-        }
-    }
-
-    cout << "Previous sweep xml: " << previous_sweep_xml << endl;
-    PoseVec sweep_transforms;
-    for (const string& transform_string : frame_transform_strings) {
-        Eigen::Matrix4d T;
-        string input = transform_string;
-        std::replace(input.begin(), input.end(), ',', ' ');
-        vector<double> inputs;
-        istringstream in(input);
-        std::copy(std::istream_iterator<double>(in), std::istream_iterator<double>(), std::back_inserter(inputs));
-        size_t i = 0;
-        for (size_t y = 0; y < 4; ++y) {
-			for (size_t x = 0; x < 4; ++x) {
-                T(y, x) = inputs[i];
-                ++i;
-			}
-        }
-        sweep_transforms.push_back(T);
-        //cout << "Got transform " << T << endl;
-    }
-
-    return make_pair(previous_sweep_xml, sweep_transforms);
-}
-
 void visualize_sweep_registration(const string& sweep_xml, bool backwards)
 {
     PoseVec current_transforms;
@@ -122,12 +26,7 @@ void visualize_sweep_registration(const string& sweep_xml, bool backwards)
 
     SweepT previous_data = semantic_map_load_utilties::loadIntermediateCloudsCompleteDataFromSingleSweep<PointT>(previous_xml);
 
-    PoseVec previous_transforms;
-    for (tf::StampedTransform t : previous_data.vIntermediateRoomCloudTransformsRegistered) {
-        Eigen::Affine3d e;
-        tf::transformTFToEigen(t, e);
-        previous_transforms.push_back(e.matrix());
-    }
+    PoseVec previous_transforms = load_transforms_for_data(previous_data);
 
     SweepT current_data = semantic_map_load_utilties::loadIntermediateCloudsCompleteDataFromSingleSweep<PointT>(sweep_xml);
 
