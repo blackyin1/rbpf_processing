@@ -9,6 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <tf_conversions/tf_eigen.h>
 #include <rbpf_processing/data_convenience.h>
+#include <rbpf_processing/xml_convenience.h>
 
 using namespace std;
 

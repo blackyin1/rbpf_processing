@@ -6,10 +6,12 @@
 #include <cereal/types/map.hpp>
 #include <eigen_cereal/eigen_cereal.h>
 #include <rbpf_processing/data_convenience.h>
+#include <rbpf_processing/xml_convenience.h>
 
 using namespace std;
 
-void save_objects(const string& room_path, ObjectVec& objects, FrameVec& frames)
+// this is obsolete
+void obsolete_save_objects(const string& room_path, ObjectVec& objects, FrameVec& frames)
 {
     boost::filesystem::path folder_path = boost::filesystem::path(room_path).parent_path();
 
@@ -63,7 +65,7 @@ int main(int argc, char** argv)
     string room_path(argv[1]);
 
     pair<ObjectVec, FrameVec> objects = loadObjects(room_path);
-    save_objects(room_path, objects.first, objects.second);
+    obsolete_save_objects(room_path, objects.first, objects.second);
 
     return 0;
 }

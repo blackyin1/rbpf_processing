@@ -9,6 +9,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <tf_conversions/tf_eigen.h>
 #include <rbpf_processing/data_convenience.h>
+#include <rbpf_processing/xml_convenience.h>
 
 using namespace std;
 
@@ -225,41 +226,6 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
     }
 
     return filtered_objects;
-}
-
-void save_objects(ObjectVec& objects, FrameVec& frames, const string& sweep_xml, bool backwards)
-{
-    PathT objects_path = PathT(sweep_xml).parent_path();
-    if (!boost::filesystem::exists(objects_path)) {
-        boost::filesystem::create_directory(object_path);
-    }
-
-    // how many objects are already saved in this folder?
-    size_t i = 0;
-    while (true) {
-        PathT object_path = object_path / (string("object") + num_str(i));
-        if (!boost::filesystem::exists(objects_path)) {
-            break;
-        }
-    }
-
-    // ok, save this in a format that we can use to extract the CNN features (JPEG FTW)
-    // one thing to note: we'll have to do another pass where we get all the image paths
-    // fortunately, there's python
-    for (SegmentedObject& obj : objects) {
-        // let's create a folder for every object
-        PathT object_path = object_path / (string("object") + num_str(i));
-        boost::filesystem::create_directory(object_path);
-        obj.object_folder = object_path.string();
-        PathT object_file = object_path / "segmented_object.json";
-        add_cropped_rgb_to_object(obj, frames);
-        ofstream out(object_file.string());
-        {
-            cereal::JSONOutputArchive archive_o(out);
-            archive_o(obj);
-        }
-        ++i;
-    }
 }
 
 void propagate_changes(const string& sweep_xml, bool backwards)
