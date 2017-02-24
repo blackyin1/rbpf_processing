@@ -6,6 +6,9 @@
 #include <metaroom_xml_parser/simple_summary_parser.h>
 #include <metaroom_xml_parser/load_utilities.h>
 #include <tf_conversions/tf_eigen.h>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
 
 using namespace std;
 
@@ -25,13 +28,83 @@ struct SimpleFrame {
 
 using FrameVec = vector<SimpleFrame>;
 
+string num_str(size_t i)
+{
+    stringstream ss;
+    ss << setfill('0') << setw(4) << i;
+    return ss.str();
+}
+
 struct SegmentedObject {
     vector<cv::Mat> masks;
+    vector<cv::Mat> depth_masks; // optional, for projection of object from other frame
+    vector<cv::Mat> cropped_rgbs; // optional, for training the CNN features
     vector<size_t> frames; // index in the FrameVec return
-    PoseVec relative_poses;
+    PoseVec relative_poses; // isn't this a bit unnecessary? Well, if they are registered maybe but... optional
+    string object_folder;
+
+    template <class Archive>
+    void save(Archive& archive) const
+    {
+        boost::filesystem::path object_path(object_folder);
+
+        vector<string> depth_paths, mask_paths, rgb_paths;
+        for (size_t i = 0; i < depth_masks.size(); ++i) {
+            string depth_path = string("depth_mask") + num_str(i) + ".png";
+            depth_paths.push_back(depth_path);
+            cv::imwrite((object_path / depth_path).string(), depth_masks[i]);
+        }
+        for (size_t i = 0; i < masks.size(); ++i) {
+            string mask_path = string("mask") + num_str(i) + ".png";
+            mask_paths.push_back(mask_path);
+            cv::imwrite((object_path / mask_path).string(), masks[i]);
+        }
+        for (size_t i = 0; i < cropped_rgbs.size(); ++i) {
+            string rgb_path = string("cropped_rgb") + num_str(i) + ".jpeg";
+            rgb_paths.push_back(rgb_path);
+            cv::imwrite((object_path / rgb_path).string(), cropped_rgbs[i]);
+        }
+
+        archive(cereal::make_nvp("frames", frames),
+                cereal::make_nvp("relative_poses", relative_poses),
+                cereal::make_nvp("segment_folder", object_folder),
+                cereal::make_nvp("mask_paths", mask_paths),
+                cereal::make_nvp("depth_paths", depth_paths),
+                cereal::make_nvp("rgb_paths", rgb_paths));
+
+    }
+
+    template <class Archive>
+    void load(Archive& archive)
+    {
+        boost::filesystem::path object_path(object_folder);
+
+        vector<string> depth_paths, mask_paths, rgb_paths;
+        archive(frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
+
+        for (size_t i = 0; i < depth_paths.size(); ++i) {
+            depth_masks.push_back(cv::imread((object_path / depth_paths[i]).string()));
+        }
+        for (size_t i = 0; i < mask_paths.size(); ++i) {
+            masks.push_back(cv::imread((object_path / mask_paths[i]).string()));
+        }
+        for (size_t i = 0; i < rgb_paths.size(); ++i) {
+            cropped_rgbs.push_back(cv::imread((object_path / rgb_paths[i]).string()));
+        }
+    }
 };
 
 using ObjectVec = vector<SegmentedObject>;
+
+void add_cropped_rgb_to_object(SegmentedObject& obj, FrameVec& frames)
+{
+    for (size_t i = 0; i < obj.frames.size(); ++i) {
+        cv::Mat points;
+        cv::findNonZero(obj.masks[i], points);
+        cv::Rect min_rect = cv::boundingRect(points);
+        obj.cropped_rgbs.push_back(frames[obj.frames[i]](min_rect));
+    }
+}
 
 pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool backwards)
 {
