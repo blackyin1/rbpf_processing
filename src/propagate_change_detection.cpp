@@ -97,24 +97,25 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             vector<size_t> frame_ids;
             for (size_t j = 0; j < current_frames.size(); ++j) {
 
-                //cout << "Going through current frame " << j << endl;
+                cout << "Going through current frame " << j << endl;
 
                 // short wire here if there is no overlap between frames. Best way is probably to check
                 // angle between z vectors projected in x-y plane. If > 90 degress, break
                 Eigen::Vector3d d1 = previous_transforms[frame_ind].block<3, 1>(0, 2);
                 Eigen::Vector3d d2 = current_transforms[j].block<3, 1>(0, 2);
                 double angle = atan2(d1.cross(d2).norm(), d1.dot(d2));
-                if (angle > 0.5*M_PI) {
+                if (d1.dot(d2) < 0 || fabs(angle) > 0.5*M_PI) {
+                    cout << "Skipping" << endl;
                     continue;
                 }
 
                 //Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = Mc[j]*Mp[i]*Dp;
 
-                Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = previous_transforms[i]*Dp;
+                Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = previous_transforms[frame_ind]*Dp;
                 Dc.topRows<3>() = Dc.topRows<3>().array().rowwise() / Dc.row(3).array();
                 Dc = current_transforms[j].inverse()*Dc;
                 Dc.topRows<3>() = Dc.topRows<3>().array().rowwise() / Dc.row(3).array();
-                Dc.topRows<3>() = current_frames[i].K*Dc.topRows<3>();
+                Dc.topRows<3>() = current_frames[j].K*Dc.topRows<3>();
                 Dc.topRows<2>() = Dc.topRows<2>().array().rowwise() / Dc.row(2).array();
 
                 //Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = Mc[j]*previous_transforms[i]*Dp;
@@ -137,8 +138,15 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
                     projected_masks.push_back(mask);
                     projected_depths.push_back(depth);
                     if (false) {
-                        cv::imshow("original depth", 5*previous_frames[frame_ind].depth);
-                        cv::imshow("projected depth", 5*depth);
+                        cv::Mat rgb = current_frames[j].rgb.clone();
+                        cv::Mat inverted_mask;
+                        cv::bitwise_not(mask, inverted_mask);
+                        rgb.setTo(cv::Scalar(0, 0, 0), inverted_mask);
+                        cv::imshow("projected rgb", rgb);
+                        cv::Mat previous_rgb = previous_frames[frame_ind].rgb.clone();
+                        cv::bitwise_not(obj.masks[i], inverted_mask);
+                        previous_rgb.setTo(cv::Scalar(0, 0, 0), inverted_mask);
+                        cv::imshow("original depth", previous_rgb);
                         cv::waitKey();
                     }
                     frame_ids.push_back(j);
