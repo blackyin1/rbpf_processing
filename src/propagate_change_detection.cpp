@@ -6,7 +6,6 @@
 #include <cereal/archives/xml.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
-#include <pcl/visualization/pcl_visualizer.h>
 #include <tf_conversions/tf_eigen.h>
 #include <rbpf_processing/data_convenience.h>
 #include <rbpf_processing/xml_convenience.h>
@@ -25,7 +24,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
     // some premature optimization....
     PoseVec Mp;
     for (size_t i = 0; i < previous_frames.size(); ++i) {
-        Eigen::Matri4xd Kp = Eigen::Matrix4d::Identity();
+        Eigen::Matrix4d Kp = Eigen::Matrix4d::Identity();
         Kp.topLeftCorner<3, 3>() = previous_frames[i].K;
         Eigen::Matrix4d Mpi = Kp.transpose().colPivHouseholderQr().solve(previous_transforms[i]).transpose();
         Mp.push_back(Mpi);
@@ -33,7 +32,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 
     PoseVec Mc;
     for (size_t i = 0; i < current_frames.size(); ++i) {
-        Eigen::Matri4xd Kc = Eigen::Matrix4d::Identity();
+        Eigen::Matrix4d Kc = Eigen::Matrix4d::Identity();
         Kc.topLeftCorner<3, 3>() = current_frames[i].K;
         Eigen::Matrix4d Mci = current_transforms[i].transpose().colPivHouseholderQr().solve(Kc).transpose();
         Mc.push_back(Mci);
@@ -73,8 +72,8 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 
                 // short wire here if there is no overlap between frames. Best way is probably to check
                 // angle between z vectors projected in x-y plane. If > 90 degress, break
-                Eigen::Vector3d d1 = previous_transforms[frame_ind].col(2);
-                Eigen::Vector3d d2 = current_transforms[i].col(2);
+                Eigen::Vector3d d1 = previous_transforms[frame_ind].block<3, 1>(0, 2);
+                Eigen::Vector3d d2 = current_transforms[i].block<3, 1>(0, 2);
                 double angle = atan2(d1.cross(d2).norm(), d1.dot(d2));
                 if (angle > 0.5*M_PI) {
                     continue;
@@ -83,13 +82,13 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
                 Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = Mc[j]*Mp[i]*Dp;
                 Dc.topRows<2>() = Dc.topRows<2>().array().rowwise() / Dc.row(2).array();
                 Dc.row(2) = Dc.row(2).array()/Dc.row(3).array();
-                Eigen::Matrix<int, 4, Eigen::Dynamic> pc = Dc.topRows<2>().cast<int>();
-                cv::Mat mask = cv::Mat::zeros(CV_8UC, 480, 640);
+                Eigen::Matrix<int, 2, Eigen::Dynamic> pc = Dc.topRows<2>().cast<int>();
+                cv::Mat mask = cv::Mat::zeros(CV_8U, 480, 640);
                 cv::Mat depth = cv::Mat::zeros(CV_16UC1, 480, 640);
                 size_t pixel_counter = 0;
                 for (size_t k = 0; k < pc.cols(); ++k) {
                     if (pc(0, k) >= 0 && pc(0, k) < 640 && pc(1, k) >= 0 && pc(1, k) < 480) {
-                        mask.at<uchar_t>(pc(1, k), pc(0, k)) = 255;
+                        mask.at<uchar>(pc(1, k), pc(0, k)) = 255;
                         depth.at<uint16_t>(pc(1, k), pc(0, k)) = uint16_t(1000.0*Dc(2, k)); // should this be 500?
                         ++pixel_counter;
                     }
@@ -129,16 +128,16 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
 
         for (size_t i = 0; i < obj.frames.size(); ++i) {
             // it would probably be good to extract just the cropped depth
-            cv::Mat bg = current_frames[obj.frames[i]].depth;
+            cv::Mat bg;
+            current_frames[obj.frames[i]].depth.convertTo(bg, CV_32FC1);
             bg.setTo(0, obj.masks[i]);
-            bg.convertTo(resized_image, CV_32FC1);
-            cv::Mat proj = obj.depth_masks[i];
-            proj.convertTo(resized_image, CV_32FC1);
+            cv::Mat proj;
+            obj.depth_masks[i].convertTo(proj, CV_32FC1);
 
             cv::Mat diff = proj - bg; // we should probably change this to SC32?
-            absdiff += cv::sum(cv::abs(diff));
-            totsum += cv::sum(diff);
-            totpixels += cv::sum(obj.masks[i]);
+            absdiff += cv::sum(cv::abs(diff))[0];
+            totsum += cv::sum(diff)[0];
+            totpixels += cv::sum(obj.masks[i])[0];
 
             // 3 interesting cases: gone (positive difference), occluded (negative difference), present (very small difference)
             // one thing that just struck me is that objects will probably be occluded by themselves quite often
@@ -208,8 +207,8 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
                 cv::Mat total;
                 cv::bitwise_and(obj.masks[i], prev.masks[j], total);
 
-                total_overlap += cv::sum(overlap);
-                total_pixels += cv::sum(total);
+                total_overlap += cv::sum(overlap)[0];
+                total_pixels += cv::sum(total)[0];
             }
 
             if (total_pixels == 0 || total_overlap / total_pixels < 0.5) { // pretty liberal but: it's not the same!
@@ -234,6 +233,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     string previous_xml;
     tie(previous_xml, current_transforms) = read_previous_sweep_params(sweep_xml, backwards);
 
+    SweepT previous_data = semantic_map_load_utilties::loadIntermediateCloudsCompleteDataFromSingleSweep<PointT>(previous_xml);
     PoseVec previous_transforms = load_transforms_for_data(previous_data);
 
     ObjectVec previous_objects;
@@ -254,7 +254,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     // or with the backward dynamic objects. In that case I can just skip
     // I should probably save all of the relevant objects at the same time as
     // doing this pass
-    ObjectVec propagated_objects = propagate_objects(current_objects, current_frames, projected_objects);
+    ObjectVec propagated_objects = propagate_objects(current_frames, projected_objects);
 
     ObjectVec filtered_objects = filter_objects(propagated_objects, current_objects);
 
@@ -277,7 +277,7 @@ int main(int argc, char** argv)
         }
     }
 
-    string room_path(argv[1]);
+    string sweep_xml(argv[1]);
     propagate_changes(sweep_xml, backwards);
 
     return 0;

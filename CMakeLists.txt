@@ -142,6 +142,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 add_executable(metaroom_process_data src/metaroom_process_data.cpp)
 add_executable(process_detections src/process_detections.cpp)
 add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
+add_executable(propagate_change_detection src/propagate_change_detection.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -170,6 +171,12 @@ target_link_libraries(visualize_registered_sweeps
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
+)
+
+target_link_libraries(propagate_change_detection
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 
 #############

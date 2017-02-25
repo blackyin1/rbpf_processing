@@ -9,6 +9,7 @@
 #include <cereal/archives/json.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/map.hpp>
+#include <eigen_cereal/eigen_cereal.h>
 
 using namespace std;
 
@@ -102,7 +103,8 @@ void add_cropped_rgb_to_object(SegmentedObject& obj, FrameVec& frames)
         cv::Mat points;
         cv::findNonZero(obj.masks[i], points);
         cv::Rect min_rect = cv::boundingRect(points);
-        obj.cropped_rgbs.push_back(frames[obj.frames[i]](min_rect));
+        cv::Mat cropped = frames[obj.frames[i]].rgb(min_rect);
+        obj.cropped_rgbs.push_back(cropped);
     }
 }
 
@@ -121,7 +123,7 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const string& sweep_xml,
 {
     PathT objects_path = PathT(sweep_xml).parent_path();
     if (!boost::filesystem::exists(objects_path)) {
-        boost::filesystem::create_directory(object_path);
+        boost::filesystem::create_directory(objects_path);
     }
 
     // how many objects are already saved in this folder?
