@@ -21,6 +21,8 @@ using SweepT = semantic_map_load_utilties::IntermediateCloudCompleteData<PointT>
 ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& previous_transforms,
                           FrameVec& current_frames, FrameVec& previous_frames, ObjectVec& previous_objects)
 {
+    double scaling = 500.0;
+
     // some premature optimization....
     PoseVec Mp;
     for (size_t i = 0; i < previous_frames.size(); ++i) {
@@ -53,7 +55,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
         for (size_t i = 0; i < obj.frames.size(); ++i) {
 
             size_t frame_ind = obj.frames[i];
-            Eigen::Matrix4d relative_pose = previous_transforms[frame_ind];
+            //Eigen::Matrix4d relative_pose = previous_transforms[frame_ind];
 
             Eigen::Matrix<double, 4, Eigen::Dynamic> Dp;
             cv::Mat locations;   // output, locations of non-zero pixels
@@ -61,7 +63,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             for (size_t j = 0; j < locations.cols; ++j) {
                 int x = locations.at<int>(0, j);
                 int y = locations.at<int>(1, j);
-                double depth = double(previous_frames[i].depth.at<uint16_t>(y, x))/1000.0; // should this be 500?
+                double depth = double(previous_frames[i].depth.at<uint16_t>(y, x))/scaling; // should this be 500?
                 Dp.col(j) << depth*x, depth*y, depth, 1.0;
             }
 
@@ -117,6 +119,8 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 // also note that if we have an overlap here, it should be with a backward/forward object, otherwise it's strange
 ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objects)
 {
+    double scaling = 500.0;
+
     // how many frames should I check here? all of them!
     ObjectVec new_objects;
 
@@ -128,6 +132,7 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
 
         for (size_t i = 0; i < obj.frames.size(); ++i) {
             // it would probably be good to extract just the cropped depth
+            // let's just keep the images as integers, we can convert to float after summing differences
             cv::Mat bg;
             current_frames[obj.frames[i]].depth.convertTo(bg, CV_32FC1);
             bg.setTo(0, obj.masks[i]);
@@ -135,8 +140,8 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
             obj.depth_masks[i].convertTo(proj, CV_32FC1);
 
             cv::Mat diff = proj - bg; // we should probably change this to SC32?
-            absdiff += cv::sum(cv::abs(diff))[0];
-            totsum += cv::sum(diff)[0];
+            absdiff += 1.0/scaling*cv::sum(cv::abs(diff))[0];
+            totsum += 1.0/scaling*cv::sum(diff)[0];
             totpixels += cv::sum(obj.masks[i])[0];
 
             // 3 interesting cases: gone (positive difference), occluded (negative difference), present (very small difference)

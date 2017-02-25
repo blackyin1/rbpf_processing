@@ -1,6 +1,20 @@
 #ifndef XML_CONVENIENCE_H
 #define XML_CONVENIENCE_H
 
+#include <metaroom_xml_parser/simple_xml_parser.h>
+#include <metaroom_xml_parser/simple_summary_parser.h>
+#include <metaroom_xml_parser/load_utilities.h>
+#include <rbpf_processing/data_convenience.h>
+
+using namespace std;
+
+using PointT = pcl::PointXYZRGB;
+using CloudT = pcl::PointCloud<PointT>;
+using PathT = boost::filesystem::path;
+using PoseVec = vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >;
+using RoomT = SimpleXMLParser<PointT>::RoomData;
+using FrameVec = vector<SimpleFrame>;
+
 pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool backwards)
 {
     //map<string, map<string, string> > loaded_file;
@@ -98,6 +112,7 @@ pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool b
     return make_pair(previous_sweep_xml, sweep_transforms);
 }
 
+/*
 Eigen::Matrix4d getPose(QXmlStreamReader& xmlReader)
 {
     QXmlStreamReader::TokenType token = xmlReader.readNext();//Translation
@@ -140,7 +155,9 @@ Eigen::Matrix4d getPose(QXmlStreamReader& xmlReader)
 
     return regpose;
 }
+*/
 
+/*
 pair<FrameVec, PoseVec> readViewXML(const string& roomLogName, const string& xmlFile)
 {
     PoseVec poses;
@@ -267,13 +284,37 @@ pair<FrameVec, PoseVec> readViewXML(const string& roomLogName, const string& xml
 
     return make_pair(frames, poses);
 }
+*/
+
+pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
+{
+    //RoomT data = SimpleXMLParser<PointT>::loadRoomFromXML(sweep_xml, vector<string>{"RoomIntermediateCloud"}, false, false);
+    FrameVec frames;
+    PoseVec poses;
+
+    for (size_t i = 0; i < data.vIntermediateRoomClouds.size(); ++i) {
+        Eigen::Affine3d e;
+        tf::transformTFToEigen(data.vIntermediateRoomCloudTransformsRegistered[i], e);
+        poses.push_back(e.matrix());
+        pair<cv::Mat, cv::Mat> images = SimpleXMLParser<PointT>::createRGBandDepthFromPC(data.vIntermediateRoomClouds[i]);
+        SimpleFrame frame;
+        frame.rgb = images.first;
+        frame.depth = images.second;
+        frame.pose = e.matrix();
+        image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParams[i];
+        cv::Matx33d cvK = model.intrinsicMatrix();
+        frame.K = Eigen::Map<Eigen::Matrix3d>(cvK.val);
+    }
+
+    return make_pair(frames, poses);
+}
 
 pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false)
 {
     printf("loadModels(%s)\n",path.c_str());
 
     SimpleXMLParser<pcl::PointXYZRGB> parser;
-    SimpleXMLParser<pcl::PointXYZRGB>::RoomData roomData  = parser.loadRoomFromXML(path, vector<string>(), false, false);
+    SimpleXMLParser<pcl::PointXYZRGB>::RoomData roomData  = parser.loadRoomFromXML(path, vector<string>{"RoomIntermediateCloud"}, false, false);
     string roomLogName = roomData.roomLogName; // is this the only place where roomData is used? seems unnecessary
     // but on the other hand, we need e.g. the time of the sweep and maybe some transforms to get to global coordinates
     printf("roomLogName: %s\n",roomLogName.c_str());
@@ -283,7 +324,8 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
 
     FrameVec frames;
     PoseVec poses;
-    tie(frames, poses) = readViewXML(roomLogName, sweep_folder+"ViewGroup.xml");
+    //tie(frames, poses) = readViewXML(roomLogName, sweep_folder+"ViewGroup.xml"); // this does not seem to work but why use this if we have the metaroom parser?
+    tie(frames, poses) = load_frames_poses(roomData);
 
     ObjectVec objects;
     int objcounter = -1;
