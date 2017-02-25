@@ -216,6 +216,8 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
 
         if (absdiff < 0.2) { // 0.03) { // it's probably there still
             SegmentedObject propagated;
+            propagated.object_type = "propagated";
+            propagated.going_backward = obj.going_backward;
             propagated.frames = obj.frames;
             propagated.relative_poses = obj.relative_poses;
             for (size_t i = 0; i < obj.frames.size(); ++i) {
@@ -304,10 +306,12 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
         if (!found) {
             cout << "It's unique, adding!" << endl;
             SegmentedObject filtered;
+            filtered.object_type = obj.object_type;
+            filtered.going_backward = obj.going_backward;
             filtered.frames = obj.frames;
             filtered.relative_poses = obj.relative_poses;
             for (size_t i = 0; i < obj.frames.size(); ++i) {
-                filtered.masks.push_back(obj.masks[i].clone());
+                filtered.masks.push_back(obj.masks[i].clone()); // this is not so important as we'll throw it away anyways
             }
             filtered_objects.push_back(filtered);
         }

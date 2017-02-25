@@ -356,6 +356,8 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
         file.open(QIODevice::ReadOnly);
 
         SegmentedObject object;
+        object.object_type = "detected";
+        object.going_backward = backwards;
         //reglib::Model * mod = new reglib::Model();
         //mod->keyval = roomLogName+"_object_"+to_string(objcounter);
         //printf("object label: %s\n",mod->keyval.c_str());

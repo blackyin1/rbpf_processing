@@ -37,6 +37,10 @@ string num_str(size_t i)
 }
 
 struct SegmentedObject {
+
+    string object_type; // can be "detected", "propagated" and "occluded"
+    bool going_backward; // from backwards propagation or forward propagation
+
     vector<cv::Mat> masks;
     vector<cv::Mat> depth_masks; // optional, for projection of object from other frame
     vector<cv::Mat> cropped_rgbs; // optional, for training the CNN features
@@ -66,7 +70,9 @@ struct SegmentedObject {
             cv::imwrite((object_path / rgb_path).string(), cropped_rgbs[i]);
         }
 
-        archive(cereal::make_nvp("frames", frames),
+        archive(cereal::make_nvp("object_type", object_type),
+                cereal::make_nvp("going_backward", going_backward),
+                cereal::make_nvp("frames", frames),
                 cereal::make_nvp("relative_poses", relative_poses),
                 cereal::make_nvp("segment_folder", object_folder),
                 cereal::make_nvp("mask_paths", mask_paths),
@@ -81,7 +87,7 @@ struct SegmentedObject {
         boost::filesystem::path object_path(object_folder);
 
         vector<string> depth_paths, mask_paths, rgb_paths;
-        archive(frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
+        archive(object_type, going_backward, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
 
         for (size_t i = 0; i < depth_paths.size(); ++i) {
             depth_masks.push_back(cv::imread((object_path / depth_paths[i]).string()));
