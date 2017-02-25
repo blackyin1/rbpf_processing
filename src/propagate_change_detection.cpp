@@ -21,7 +21,7 @@ using SweepT = semantic_map_load_utilties::IntermediateCloudCompleteData<PointT>
 ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& previous_transforms,
                           FrameVec& current_frames, FrameVec& previous_frames, ObjectVec& previous_objects)
 {
-    double scaling = 500.0;
+    double scaling = 1000.0;
 
     // some premature optimization....
     PoseVec Mp;
@@ -119,7 +119,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 // also note that if we have an overlap here, it should be with a backward/forward object, otherwise it's strange
 ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objects)
 {
-    double scaling = 500.0;
+    double scaling = 1000.0;
 
     // how many frames should I check here? all of them!
     ObjectVec new_objects;
