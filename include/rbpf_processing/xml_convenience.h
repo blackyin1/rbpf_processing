@@ -109,6 +109,8 @@ pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool b
         //cout << "Got transform " << T << endl;
     }
 
+    cout << "Got transforms to previous sweep..." << endl;
+
     return make_pair(previous_sweep_xml, sweep_transforms);
 }
 
@@ -292,18 +294,23 @@ pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
     FrameVec frames;
     PoseVec poses;
 
+    cout << "Got room with " << data.vIntermediateRoomClouds.size() << " number of clouds..." << endl;
+
     for (size_t i = 0; i < data.vIntermediateRoomClouds.size(); ++i) {
+        //cout << "Loading pose and K: " << i << endl;
         Eigen::Affine3d e;
         tf::transformTFToEigen(data.vIntermediateRoomCloudTransformsRegistered[i], e);
         poses.push_back(e.matrix());
-        pair<cv::Mat, cv::Mat> images = SimpleXMLParser<PointT>::createRGBandDepthFromPC(data.vIntermediateRoomClouds[i]);
+        //pair<cv::Mat, cv::Mat> images = SimpleXMLParser<PointT>::createRGBandDepthFromPC(data.vIntermediateRoomClouds[i]);
         SimpleFrame frame;
-        frame.rgb = images.first;
-        frame.depth = images.second;
+        frame.rgb = data.vIntermediateRGBImages[i]; // images.first;
+        frame.depth = data.vIntermediateDepthImages[i]; // images.second;
+        //cout << "Depth image size: " << frame.depth.rows << "x" << frame.depth.cols << endl;
         frame.pose = e.matrix();
-        image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParams[i];
+        image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParams[0];
         cv::Matx33d cvK = model.intrinsicMatrix();
-        frame.K = Eigen::Map<Eigen::Matrix3d>(cvK.val);
+        frame.K = Eigen::Map<Eigen::Matrix3d>(cvK.val).transpose();
+        frames.push_back(frame);
     }
 
     return make_pair(frames, poses);
@@ -314,13 +321,15 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
     printf("loadModels(%s)\n",path.c_str());
 
     SimpleXMLParser<pcl::PointXYZRGB> parser;
-    SimpleXMLParser<pcl::PointXYZRGB>::RoomData roomData  = parser.loadRoomFromXML(path, vector<string>{"RoomIntermediateCloud"}, false, false);
+    SimpleXMLParser<pcl::PointXYZRGB>::RoomData roomData  = parser.loadRoomFromXML(path, vector<string>{"RoomIntermediateCloud"}, false, true);
     string roomLogName = roomData.roomLogName; // is this the only place where roomData is used? seems unnecessary
     // but on the other hand, we need e.g. the time of the sweep and maybe some transforms to get to global coordinates
     printf("roomLogName: %s\n",roomLogName.c_str());
 
     int slash_pos = path.find_last_of("/");
     string sweep_folder = path.substr(0, slash_pos) + "/";
+
+    cout << "Getting poses for " << path << endl;
 
     FrameVec frames;
     PoseVec poses;
@@ -400,6 +409,8 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
         //models.push_back(mod);
         objects.push_back(object);
     }
+
+    cout << "Done loading objects for " << path << endl;
 
     return make_pair(objects, frames);
 }

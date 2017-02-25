@@ -33,7 +33,7 @@ string num_str(size_t i)
 {
     stringstream ss;
     ss << setfill('0') << setw(4) << i;
-    return ss.str();
+    return string(ss.str());
 }
 
 struct SegmentedObject {
@@ -121,37 +121,51 @@ PoseVec load_transforms_for_data(SweepT& data)
 
 void save_objects(ObjectVec& objects, FrameVec& frames, const string& sweep_xml, bool backwards)
 {
-    PathT objects_path = PathT(sweep_xml).parent_path();
+    if (objects.empty()) {
+        return;
+    }
+
+    cout << "Saving objects, creating directory..." << endl;
+
+    PathT objects_path = PathT(sweep_xml).parent_path() / "consolidated_objects";
     if (!boost::filesystem::exists(objects_path)) {
         boost::filesystem::create_directory(objects_path);
     }
 
+    cout << "Creating object subdirectories..." << endl;
+
     // how many objects are already saved in this folder?
     size_t i = 0;
     while (true) {
-        PathT object_path = object_path / (string("object") + num_str(i));
-        if (!boost::filesystem::exists(objects_path)) {
+        PathT object_path = objects_path / (string("object") + num_str(i));
+        if (!boost::filesystem::exists(object_path)) {
             break;
         }
+        ++i;
     }
 
     // ok, save this in a format that we can use to extract the CNN features (JPEG FTW)
     // one thing to note: we'll have to do another pass where we get all the image paths
     // fortunately, there's python
     for (SegmentedObject& obj : objects) {
+        cout << "Saving object " << i << endl;
         // let's create a folder for every object
-        PathT object_path = object_path / (string("object") + num_str(i));
+        PathT object_path = objects_path / (string("object") + num_str(i));
         boost::filesystem::create_directory(object_path);
         obj.object_folder = object_path.string();
         PathT object_file = object_path / "segmented_object.json";
+        cout << "Adding rgb images..." << endl;
         add_cropped_rgb_to_object(obj, frames);
+        cout << "Writing object..." << endl;
         ofstream out(object_file.string());
         {
             cereal::JSONOutputArchive archive_o(out);
-            archive_o(obj);
+            archive_o(cereal::make_nvp("object", obj));
         }
         ++i;
     }
+
+    cout << "Done saving objects..." << endl;
 }
 
 #endif // DATA_CONVENIENCE_H
