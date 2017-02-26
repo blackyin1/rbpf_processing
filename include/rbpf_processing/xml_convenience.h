@@ -114,7 +114,7 @@ pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool b
     return make_pair(previous_sweep_xml, sweep_transforms);
 }
 
-/*
+
 Eigen::Matrix4d getPose(QXmlStreamReader& xmlReader)
 {
     QXmlStreamReader::TokenType token = xmlReader.readNext();//Translation
@@ -157,9 +157,9 @@ Eigen::Matrix4d getPose(QXmlStreamReader& xmlReader)
 
     return regpose;
 }
-*/
 
-/*
+
+
 pair<FrameVec, PoseVec> readViewXML(const string& roomLogName, const string& xmlFile)
 {
     PoseVec poses;
@@ -286,7 +286,7 @@ pair<FrameVec, PoseVec> readViewXML(const string& roomLogName, const string& xml
 
     return make_pair(frames, poses);
 }
-*/
+
 
 pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
 {
@@ -316,7 +316,7 @@ pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
     return make_pair(frames, poses);
 }
 
-pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false)
+tuple<ObjectVec, FrameVec, Eigen::Matrix4d> loadObjects(const string& path, bool backwards = false)
 {
     printf("loadModels(%s)\n",path.c_str());
 
@@ -339,7 +339,7 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
     ObjectVec objects;
     int objcounter = -1;
     QStringList objectFiles;
-    if (backwards) {
+    if (!backwards) { // these are the objects we want to compare the forward propagation against
         objectFiles = QDir(sweep_folder.c_str()).entryList(QStringList("back_dynamic_obj*.xml"));
     }
     else {
@@ -357,7 +357,7 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
 
         SegmentedObject object;
         object.object_type = "detected";
-        object.going_backward = backwards;
+        object.going_backward = !backwards;
         //reglib::Model * mod = new reglib::Model();
         //mod->keyval = roomLogName+"_object_"+to_string(objcounter);
         //printf("object label: %s\n",mod->keyval.c_str());
@@ -414,7 +414,10 @@ pair<ObjectVec, FrameVec> loadObjects(const string& path, bool backwards = false
 
     cout << "Done loading objects for " << path << endl;
 
-    return make_pair(objects, frames);
+    Eigen::Affine3d e;
+    tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e);
+
+    return make_tuple(objects, frames, e.matrix());
 }
 
 #endif // XML_CONVENIENCE_H

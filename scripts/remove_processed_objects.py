@@ -4,8 +4,7 @@ import os
 import fnmatch
 import sys
 import re
-import subprocess
-#import natsort
+import shutil
 
 def sortkey_natural(s):
     return tuple(int(part) if re.match(r'[0-9]+$', part) else part for part in re.split(r'([0-9]+)', s))
@@ -23,30 +22,21 @@ def get_sweep_xmls(data_path):
 
     return file_list
 
-
-def propagate_backwards(data_path):
-
-    sweeps = get_sweep_xmls(data_path)
-
-    for s in sweeps:
-        print s
-        subprocess.call(['rosrun rbpf_processing propagate_change_detection', s])
-
-def propagate_forwards(data_path):
+def remove_objects(data_path):
 
     sweeps = get_sweep_xmls(data_path)
 
     for s in sweeps:
-        print s
-        subprocess.call(['rosrun', 'rbpf_processing', 'propagate_change_detection', s])
+        sweep_path = os.path.abspath(os.path.join(os.path.abspath(s), os.path.pardir))
+        objects_path = os.path.join(sweep_path, "consolidated_objects")
+        if os.path.exists(objects_path):
+            print "Deleting: ", objects_path
+            #os.rmdir(objects_path)
+            shutil.rmtree(objects_path)
 
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         print "Usage: ", sys.argv[0], " path/to/data (--backwards)"
-    elif len(sys.argv) == 2:
-        propagate_forwards(sys.argv[1])
-    elif sys.argv[2] == "--backwards":
-        propagate_backwards(sys.argv[1])
     else:
-        print "Usage: ", sys.argv[0], " path/to/data (--backwards)"
+        remove_objects(sys.argv[1])

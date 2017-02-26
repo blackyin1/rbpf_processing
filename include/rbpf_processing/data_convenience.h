@@ -40,6 +40,7 @@ struct SegmentedObject {
 
     string object_type; // can be "detected", "propagated" and "occluded"
     bool going_backward; // from backwards propagation or forward propagation
+    Eigen::Vector3d pos;
 
     vector<cv::Mat> masks;
     vector<cv::Mat> depth_masks; // optional, for projection of object from other frame
@@ -72,6 +73,7 @@ struct SegmentedObject {
 
         archive(cereal::make_nvp("object_type", object_type),
                 cereal::make_nvp("going_backward", going_backward),
+                cereal::make_nvp("pos", pos),
                 cereal::make_nvp("frames", frames),
                 cereal::make_nvp("relative_poses", relative_poses),
                 cereal::make_nvp("segment_folder", object_folder),
@@ -87,7 +89,7 @@ struct SegmentedObject {
         boost::filesystem::path object_path(object_folder);
 
         vector<string> depth_paths, mask_paths, rgb_paths;
-        archive(object_type, going_backward, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
+        archive(object_type, going_backward, pos, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
 
         for (size_t i = 0; i < depth_paths.size(); ++i) {
             depth_masks.push_back(cv::imread((object_path / depth_paths[i]).string()));
@@ -114,6 +116,49 @@ void add_cropped_rgb_to_object(SegmentedObject& obj, FrameVec& frames)
     }
 }
 
+void add_pos_to_object(SegmentedObject& obj, FrameVec& frames, const Eigen::Matrix4d& map_pose)
+{
+    double scaling = 1000.0;
+
+    double max_pix = 0;
+    size_t max_ind = 0;
+    for (size_t i = 0; i < obj.frames.size(); ++i) {
+        double pix = cv::sum(obj.masks[i])[0]/255.0;
+        if (pix > max_pix) {
+            max_pix = pix;
+            max_ind = i;
+        }
+    }
+
+    cv::Mat points;
+    cv::findNonZero(obj.masks[max_ind], points);
+    cv::Mat depth = frames[obj.frames[max_ind]].depth;
+    cv::Mat mask;
+    cv::bitwise_and(obj.masks[max_ind], depth > 0, mask);
+
+    double mean_depth = 1.0/scaling*cv::mean(depth, mask)[0];
+
+    Eigen::Vector4d mean_vec;
+    mean_vec(3) = 1.0;
+    mean_vec(2) = 1.0;
+    double mean_x = 0.0;
+    double mean_y = 0.0;
+    for (size_t i = 0; i < points.total(); ++i) {
+        cv::Point p = points.at<cv::Point>(i);
+        mean_x += p.x;
+        mean_y += p.y;
+    }
+    mean_vec(0) = mean_x / double(points.total());
+    mean_vec(1) = mean_y / double(points.total());
+
+    mean_vec.head<3>() = frames[obj.frames[max_ind]].K.inverse()*mean_vec.head<3>();
+    mean_vec.head<3>() *= mean_depth/mean_vec(2);
+
+    mean_vec = map_pose*frames[obj.frames[max_ind]].pose*mean_vec;
+
+    obj.pos = 1.0/mean_vec(3)*mean_vec.head<3>();
+}
+
 PoseVec load_transforms_for_data(SweepT& data)
 {
     PoseVec transforms;
@@ -125,7 +170,57 @@ PoseVec load_transforms_for_data(SweepT& data)
     return transforms;
 }
 
-void save_objects(ObjectVec& objects, FrameVec& frames, const string& sweep_xml, bool backwards)
+void save_object_cloud(SegmentedObject& obj, FrameVec& frames,
+                       const Eigen::Matrix4d& map_pose,
+                       const string& object_path)
+{
+    double scaling = 1000.0;
+
+    double max_pix = 0;
+    size_t max_ind = 0;
+    for (size_t i = 0; i < obj.frames.size(); ++i) {
+        double pix = cv::sum(obj.masks[i])[0]/255.0;
+        if (pix > max_pix) {
+            max_pix = pix;
+            max_ind = i;
+        }
+    }
+
+    cv::Mat locations;   // output, locations of non-zero pixels
+    cv::findNonZero(obj.masks[max_ind], locations);
+    Eigen::Matrix<double, 4, Eigen::Dynamic> Dp(4, locations.total());
+    Eigen::Matrix<int, 3, Eigen::Dynamic> Pp(3, locations.total());
+    Dp.row(2).setOnes();
+
+    cout << "Found nonzero with size " << locations.rows << "x" << locations.cols << ", type: " << locations.type() << endl;
+
+    Eigen::Matrix3d Kinv = frames[obj.frames[max_ind]].K.inverse();
+    for (size_t j = 0; j < locations.total(); ++j) {
+        cv::Point p = locations.at<cv::Point>(j);
+        cv::Vec3b c = frames[obj.frames[max_ind]].rgb.at<cv::Vec3b>(p.y, p.x);
+        Pp.block<3, 1>(0, j) << c[2], c[1], c[0];
+        Dp.block<2, 1>(0, j) << p.x, p.y;
+        Dp(3, j) = double(frames[obj.frames[max_ind]].depth.at<uint16_t>(p.y, p.x))/scaling;
+    }
+
+    Dp.topRows<3>() = Kinv*Dp.topRows<3>();
+    Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / (Dp.row(2).array() / Dp.row(3).array());
+    Dp.row(3).setOnes();
+    Dp = map_pose*frames[obj.frames[max_ind]].pose*Dp;
+    Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / Dp.row(3).array();
+
+    CloudT cloud;
+    for (size_t j = 0; j < locations.total(); ++j) {
+        PointT p; p.getVector3fMap() = Dp.block<3, 1>(0, j).cast<float>();
+        p.r = Pp(0, j); p.g = Pp(1, j); p.b = Pp(2, j);
+        cloud.points.push_back(p);
+    }
+
+    pcl::io::savePCDFileBinary((PathT(object_path) / "cloud.pcd").string(), cloud);
+}
+
+void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& map_pose,
+                  const string& sweep_xml, bool backwards)
 {
     if (objects.empty()) {
         return;
@@ -162,6 +257,10 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const string& sweep_xml,
         PathT object_file = object_path / "segmented_object.json";
         cout << "Adding rgb images..." << endl;
         add_cropped_rgb_to_object(obj, frames);
+        cout << "Adding pos to object..." << endl;
+        add_pos_to_object(obj, frames, map_pose);
+        cout << "Writing object cloud..." << endl;
+        save_object_cloud(obj, frames, map_pose, object_path.string());
         cout << "Writing object..." << endl;
         ofstream out(object_file.string());
         {

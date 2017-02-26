@@ -332,6 +332,7 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
 
 void propagate_changes(const string& sweep_xml, bool backwards)
 {
+    /*
     PoseVec current_transforms;
     string previous_xml;
     tie(previous_xml, current_transforms) = read_previous_sweep_params(sweep_xml, backwards);
@@ -341,14 +342,18 @@ void propagate_changes(const string& sweep_xml, bool backwards)
 
     ObjectVec previous_objects;
     FrameVec previous_frames;
+    Eigen::Matrix4d previous_pose;
     // note that these objects should also, eventually include the ones that have been propagated forwards
-    tie(previous_objects, previous_frames) = loadObjects(previous_xml, backwards);
+    tie(previous_objects, previous_frames, previous_pose) = loadObjects(previous_xml, backwards);
+    */
 
     ObjectVec current_objects;
     FrameVec current_frames;
+    Eigen::Matrix4d map_pose;
     // note that these objects should also, eventually include the ones that have been propagated backwards
-    tie(current_objects, current_frames) = loadObjects(sweep_xml, !backwards); // we are interested in the objects coming from the other direction
+    tie(current_objects, current_frames, map_pose) = loadObjects(sweep_xml, backwards); // we are interested in the objects coming from the other direction
 
+    /*
     ObjectVec projected_objects = project_objects(current_transforms, previous_transforms, current_frames,
                                                   previous_frames, previous_objects);
 
@@ -362,8 +367,10 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     ObjectVec filtered_objects = filter_objects(propagated_objects, current_objects);
 
     // save forwards and backwards objects except for the ones that overlap and the forward filtered objects
-    save_objects(filtered_objects, current_frames, sweep_xml, backwards);
-    save_objects(current_objects, current_frames, sweep_xml, !backwards);
+    save_objects(filtered_objects, current_frames, map_pose, sweep_xml, backwards);
+    */
+
+    save_objects(current_objects, current_frames, map_pose, sweep_xml, !backwards);
 }
 
 

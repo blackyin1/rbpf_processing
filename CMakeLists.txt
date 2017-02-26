@@ -6,7 +6,7 @@ add_definitions(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS roscpp metaroom_xml_parser cereal eigen_cereal eigen_conversions tf_conversions)
+find_package(catkin REQUIRED COMPONENTS roscpp metaroom_xml_parser cereal eigen_cereal eigen_conversions tf_conversions pcl_ros)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -143,6 +143,7 @@ add_executable(metaroom_process_data src/metaroom_process_data.cpp)
 add_executable(process_detections src/process_detections.cpp)
 add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
 add_executable(propagate_change_detection src/propagate_change_detection.cpp)
+add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -177,6 +178,11 @@ target_link_libraries(propagate_change_detection
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(cloud_observation_loader
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
 )
 
 #############
