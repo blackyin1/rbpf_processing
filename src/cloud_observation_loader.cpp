@@ -5,10 +5,12 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl_ros/point_cloud.h>
+#include <boost/filesystem.hpp>
 
 using namespace std;
 using PointT = pcl::PointXYZRGB;
 using CloudT = pcl::PointCloud<PointT>;
+using PathT = boost::filesystem::path;
 
 class CloudObservationLoader {
 
@@ -30,8 +32,20 @@ public:
         vector<string> paths;
         boost::split(paths, line, boost::is_any_of(","));
 
+        PathT sweep_path;
+
         CloudT complete_cloud;
         for (const string& path : paths) {
+
+            PathT current_path = PathT(path).parent_path().parent_path().parent_path();
+            if (sweep_path.empty()) {
+                sweep_path = current_path;
+            }
+            else if (sweep_path != current_path) {
+                cout << "Got clouds from different sweeps " << sweep_path.string() << " and " << current_path.string() << endl;
+                sweep_path = current_path;
+            }
+
             CloudT cloud;
             pcl::io::loadPCDFile(path, cloud);
             complete_cloud += cloud;
