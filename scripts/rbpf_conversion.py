@@ -18,6 +18,11 @@ def convert_observations(data_path):
 
     spatial_positions = np.zeros((len(timestamps), 4, 2))
 
+    clouds = objects_file['clouds']
+
+    #for i in range(0, 100):
+    #    print i, timestamps[i], clouds[i]
+
     np.savez(observations_file, spatial_measurements = objects_file['poses'],
                                 feature_measurements = features_file['features'],
                                 timesteps = timestamps,
@@ -26,9 +31,9 @@ def convert_observations(data_path):
                                 observation_ids = np.arange(0, len(timestamps), dtype=int),
                                 spatial_measurement_std = 0.3,
                                 feature_measurement_std = 5.0,
-                                clouds = objects_file['clouds'])
+                                clouds = clouds)
 
-    print timestamps
+    #print timestamps
 
 if __name__ == '__main__':
 

@@ -56,7 +56,7 @@ def summarize_objects(data_path):
         print s
         objects = get_objects(s)
         for o in objects:
-            print o
+            print i, o
             clouds.append(str(os.path.join(o, "cloud.pcd")))
             object_file = os.path.join(o, "segmented_object.json")
             with open(object_file) as data_file:
@@ -71,6 +71,13 @@ def summarize_objects(data_path):
 
     poses = np.array(poses)
     timestamps = np.array(timestamps)
+
+    print "Images: ", len(images)
+    print "Clouds: ", len(clouds)
+    print "Poses: ", poses.shape
+    print "Types: ", len(detection_types)
+    print "Timestamps: ", timestamps.shape
+    print "Central images", len(central_images)
 
     summary_path = os.path.abspath(os.path.join(data_path, "data_summary.npz"))
     np.savez(summary_path, images=images, central_images=central_images, clouds=clouds,

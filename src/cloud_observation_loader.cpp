@@ -4,13 +4,18 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/common/transforms.h>
 #include <pcl_ros/point_cloud.h>
 #include <boost/filesystem.hpp>
+#include <metaroom_xml_parser/simple_xml_parser.h>
+#include <tf_conversions/tf_eigen.h>
 
 using namespace std;
 using PointT = pcl::PointXYZRGB;
 using CloudT = pcl::PointCloud<PointT>;
 using PathT = boost::filesystem::path;
+using RoomT = SimpleXMLParser<PointT>::RoomData;
 
 class CloudObservationLoader {
 
@@ -19,16 +24,21 @@ public:
     ros::NodeHandle n;
     ros::Subscriber sub;
     ros::Publisher pub;
+    ros::Publisher sweep_pub;
 
     CloudObservationLoader() : n()
     {
-        pub = n.advertise<sensor_msgs::PointCloud2>("measurement_clouds", 10);
-        sub = n.subscribe("cloud_paths", 10, &CloudObservationLoader::callback, this);
+        pub = n.advertise<sensor_msgs::PointCloud2>("measurement_clouds", 50);
+        sweep_pub = n.advertise<sensor_msgs::PointCloud2>("complete_cloud", 50);
+        sub = n.subscribe("cloud_paths", 50, &CloudObservationLoader::callback, this);
     }
 
     void callback(const std_msgs::String::ConstPtr& str)
     {
         string line(str->data);
+        if (line.empty()) {
+            return;
+        }
         vector<string> paths;
         boost::split(paths, line, boost::is_any_of(","));
 
@@ -56,6 +66,33 @@ public:
         cloud_msg.header.frame_id = "/map";
         cloud_msg.header.stamp = ros::Time::now();
         pub.publish(cloud_msg);
+
+        if (!sweep_path.empty()) {
+            PathT cloud_path = sweep_path / "complete_cloud.pcd";
+            if (!boost::filesystem::exists(cloud_path)) {
+                return;
+            }
+            RoomT roomData  = SimpleXMLParser<PointT>::loadRoomFromXML((sweep_path / "room.xml").string(), vector<string>{"RoomIntermediateCloud"}, false, false);
+            Eigen::Affine3d e;
+            tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e);
+
+            CloudT::Ptr cloud(new CloudT);
+            pcl::io::loadPCDFile(cloud_path.string(), *cloud);
+            pcl::VoxelGrid<PointT> sor;
+            sor.setInputCloud(cloud);
+            sor.setLeafSize(0.02f, 0.02f, 0.02f);
+            CloudT cloud_filtered;
+            sor.filter(cloud_filtered);
+
+            CloudT cloud_transformed;
+            pcl::transformPointCloud(cloud_filtered, cloud_transformed, e.matrix());
+
+            sensor_msgs::PointCloud2 sweep_msg;
+            pcl::toROSMsg(cloud_transformed, sweep_msg);
+            sweep_msg.header.frame_id = "/map";
+            sweep_msg.header.stamp = ros::Time::now();
+            sweep_pub.publish(sweep_msg);
+        }
     }
 };
 
