@@ -156,11 +156,13 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             cout << "Found " << projected_masks.size() << " objects, converting..." << endl;
 
             if (!projected_masks.empty()) {
-                SegmentedObject obj;
-                obj.frames.insert(obj.frames.end(), frame_ids.begin(), frame_ids.end());
-                obj.masks.insert(obj.masks.end(), projected_masks.begin(), projected_masks.end());
-                obj.depth_masks.insert(obj.depth_masks.end(), projected_depths.begin(), projected_depths.end());
-                projected_objects.push_back(obj);
+                SegmentedObject proj_obj;
+                proj_obj.frames.insert(proj_obj.frames.end(), frame_ids.begin(), frame_ids.end());
+                proj_obj.masks.insert(proj_obj.masks.end(), projected_masks.begin(), projected_masks.end());
+                proj_obj.depth_masks.insert(proj_obj.depth_masks.end(), projected_depths.begin(), projected_depths.end());
+                proj_obj.object_type = "propagated";
+                proj_obj.going_backward = obj.going_backward;
+                projected_objects.push_back(proj_obj);
             }
         }
     }
@@ -224,7 +226,7 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
 
         if (absdiff < 0.2) { // 0.03) { // it's probably there still
             SegmentedObject propagated;
-            propagated.object_type = "propagated";
+            propagated.object_type = obj.object_type;
             propagated.going_backward = obj.going_backward;
             propagated.frames = obj.frames;
             propagated.relative_poses = obj.relative_poses;
@@ -332,7 +334,7 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
 
 void propagate_changes(const string& sweep_xml, bool backwards)
 {
-    /*
+
     PoseVec current_transforms;
     string previous_xml;
     tie(previous_xml, current_transforms) = read_previous_sweep_params(sweep_xml, backwards);
@@ -345,7 +347,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     Eigen::Matrix4d previous_pose;
     // note that these objects should also, eventually include the ones that have been propagated forwards
     tie(previous_objects, previous_frames, previous_pose) = loadObjects(previous_xml, backwards);
-    */
+
 
     ObjectVec current_objects;
     FrameVec current_frames;
@@ -353,7 +355,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     // note that these objects should also, eventually include the ones that have been propagated backwards
     tie(current_objects, current_frames, map_pose) = loadObjects(sweep_xml, backwards); // we are interested in the objects coming from the other direction
 
-    /*
+
     ObjectVec projected_objects = project_objects(current_transforms, previous_transforms, current_frames,
                                                   previous_frames, previous_objects);
 
@@ -368,7 +370,6 @@ void propagate_changes(const string& sweep_xml, bool backwards)
 
     // save forwards and backwards objects except for the ones that overlap and the forward filtered objects
     save_objects(filtered_objects, current_frames, map_pose, sweep_xml, backwards);
-    */
 
     save_objects(current_objects, current_frames, map_pose, sweep_xml, !backwards);
 }

@@ -45,6 +45,8 @@ void visualize_sweep_registration(const string& sweep_xml, bool backwards)
         *combined_cloud += *transformed_cloud;
     }
 
+    cout << current_transforms[0] << endl;
+
     boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer ("3D Viewer"));
     viewer->setBackgroundColor(1, 1, 1);
     pcl::visualization::PointCloudColorHandlerRGBField<PointT> rgb(combined_cloud);

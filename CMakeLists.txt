@@ -129,9 +129,13 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 ## Declare a C++ library
-# add_library(rbpf_mtt
-#   src/${PROJECT_NAME}/rbpf_mtt.cpp
-# )
+add_library(data_convenience
+   src/${PROJECT_NAME}/data_convenience.cpp
+)
+
+add_library(xml_convenience
+   src/${PROJECT_NAME}/xml_convenience.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -155,7 +159,23 @@ add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
 #  ${catkin_LIBRARIES}
 #)
 
+target_link_libraries(data_convenience
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(xml_convenience
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
 target_link_libraries(process_detections
+  data_convenience
+  xml_convenience
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -168,6 +188,8 @@ target_link_libraries(metaroom_process_data
 )
 
 target_link_libraries(visualize_registered_sweeps
+  data_convenience
+  xml_convenience
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -175,6 +197,8 @@ target_link_libraries(visualize_registered_sweeps
 )
 
 target_link_libraries(propagate_change_detection
+  data_convenience
+  xml_convenience
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
