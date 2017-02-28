@@ -31,7 +31,9 @@ def convert_observations(data_path):
                                 observation_ids = np.arange(0, len(timestamps), dtype=int),
                                 spatial_measurement_std = 0.3,
                                 feature_measurement_std = 5.0,
-                                clouds = clouds)
+                                clouds = clouds,
+                                detection_type = objects_file['detection_type'],
+                                going_backward = objects_file['going_backward'])
 
     #print timestamps
 

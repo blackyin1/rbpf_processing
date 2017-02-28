@@ -113,6 +113,8 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
         cloud->points.push_back(p);
     }
 
+    cout << "Object cloud size: " << cloud->size() << endl;
+
     pcl::io::savePCDFileBinary((PathT(object_path) / "cloud.pcd").string(), *cloud);
 
     return cloud;
@@ -120,11 +122,15 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
 
 void save_complete_propagated_cloud(vector<CloudT::Ptr>& clouds, const string& sweep_xml, bool backwards)
 {
+    cout << "Writing complete propagated cloud..." << endl;
+
     CloudT complete_cloud;
 
     for (CloudT::Ptr& cloud : clouds) {
         complete_cloud += *cloud;
     }
+
+    cout << "Complete cloud size: " << complete_cloud.size() << endl;
 
     PathT complete_path;
     if (backwards) {
@@ -193,7 +199,9 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
         ++i;
     }
 
-    save_complete_propagated_cloud(clouds, sweep_xml, backwards);
+    if (!clouds.empty()) {
+        save_complete_propagated_cloud(clouds, sweep_xml, backwards);
+    }
 
     cout << "Done saving objects..." << endl;
 }

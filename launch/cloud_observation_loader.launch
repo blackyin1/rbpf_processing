@@ -1,0 +1,21 @@
+<launch>
+
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="detection_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="cloud_paths"/>
+        <remap from="measurement_clouds" to="measurement_clouds"/>
+        <remap from="complete_cloud" to="complete_cloud"/>
+    </node>
+
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="backward_cloud_paths"/>
+        <remap from="measurement_clouds" to="backward_clouds"/>
+        <remap from="complete_cloud" to="back_complete_cloud"/>
+    </node>
+
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="forward_cloud_paths"/>
+        <remap from="measurement_clouds" to="forward_clouds"/>
+        <remap from="complete_cloud" to="forward_complete_cloud"/>
+    </node>
+
+</launch>

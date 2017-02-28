@@ -48,9 +48,10 @@ def summarize_objects(data_path):
     images = []
     clouds = []
     poses = []
-    detection_types = []
+    detection_type = []
     timestamps = []
     central_images = []
+    going_backward = []
 
     for i, s in enumerate(sweeps):
         print s
@@ -63,25 +64,27 @@ def summarize_objects(data_path):
                 object_dict = json.load(data_file)['object']
             images.append([os.path.join(o, im) for im in object_dict['rgb_paths']])
             poses.append(object_dict['pos']['value2'])
-            detection_types.append(object_dict['object_type'])
+            detection_type.append(object_dict['object_type'])
             timestamps.append(i)
+            going_backward.append(object_dict['going_backward'] == "true")
 
     for ims in images:
         central_images.append(ims[len(ims)/2])
 
     poses = np.array(poses)
     timestamps = np.array(timestamps)
+    going_backward = np.array(going_backward, dtype=bool)
 
     print "Images: ", len(images)
     print "Clouds: ", len(clouds)
     print "Poses: ", poses.shape
-    print "Types: ", len(detection_types)
+    print "Types: ", len(detection_type)
     print "Timestamps: ", timestamps.shape
     print "Central images", len(central_images)
 
     summary_path = os.path.abspath(os.path.join(data_path, "data_summary.npz"))
-    np.savez(summary_path, images=images, central_images=central_images, clouds=clouds,
-                           poses=poses, detection_types=detection_types, timestamps=timestamps)
+    np.savez(summary_path, images=images, central_images=central_images, clouds=clouds, poses=poses,
+                           detection_type=detection_type, timestamps=timestamps, going_backward=going_backward)
 
 if __name__ == '__main__':
 

@@ -224,7 +224,7 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
         cout << "Pixels: " << totpixels << endl;
         cout << "Totsum: " << totsum << endl;
 
-        if (absdiff < 0.2) { // 0.03) { // it's probably there still
+        if (absdiff < 0.1) { // 0.03) { // it's probably there still
             SegmentedObject propagated;
             propagated.object_type = obj.object_type;
             propagated.going_backward = obj.going_backward;
@@ -297,7 +297,7 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
                 cv::Mat overlap;
                 cv::bitwise_and(obj.masks[i], prev.masks[j], overlap);
                 cv::Mat total;
-                cv::bitwise_and(obj.masks[i], prev.masks[j], total);
+                cv::bitwise_or(obj.masks[i], prev.masks[j], total);
 
                 total_overlap += cv::sum(overlap)[0];
                 total_pixels += cv::sum(total)[0];
