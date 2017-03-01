@@ -327,7 +327,7 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> loadObjects(const string& path, bool
     ObjectVec objects;
     int objcounter = -1;
     QStringList objectFiles;
-    if (!backwards) { // these are the objects we want to compare the forward propagation against
+    if (backwards) { // these are the objects we want to compare the forward propagation against
         objectFiles = QDir(sweep_folder.c_str()).entryList(QStringList("back_dynamic_obj*.xml"));
     }
     else {

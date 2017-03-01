@@ -73,6 +73,7 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
 {
     double scaling = 1000.0;
 
+    /*
     double max_pix = 0;
     size_t max_ind = 0;
     for (size_t i = 0; i < obj.frames.size(); ++i) {
@@ -90,27 +91,42 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
     Dp.row(2).setOnes();
 
     cout << "Found nonzero with size " << locations.rows << "x" << locations.cols << ", type: " << locations.type() << endl;
-
-    Eigen::Matrix3d Kinv = frames[obj.frames[max_ind]].K.inverse();
-    for (size_t j = 0; j < locations.total(); ++j) {
-        cv::Point p = locations.at<cv::Point>(j);
-        cv::Vec3b c = frames[obj.frames[max_ind]].rgb.at<cv::Vec3b>(p.y, p.x);
-        Pp.block<3, 1>(0, j) << c[2], c[1], c[0];
-        Dp.block<2, 1>(0, j) << 0.5+p.x, 0.5+p.y;
-        Dp(3, j) = double(frames[obj.frames[max_ind]].depth.at<uint16_t>(p.y, p.x))/scaling;
-    }
-
-    Dp.topRows<3>() = Kinv*Dp.topRows<3>();
-    Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / (Dp.row(2).array() / Dp.row(3).array());
-    Dp.row(3).setOnes();
-    Dp = map_pose*frames[obj.frames[max_ind]].pose*Dp;
-    Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / Dp.row(3).array();
+    */
 
     CloudT::Ptr cloud(new CloudT);
-    for (size_t j = 0; j < locations.total(); ++j) {
-        PointT p; p.getVector3fMap() = Dp.block<3, 1>(0, j).cast<float>();
-        p.r = Pp(0, j); p.g = Pp(1, j); p.b = Pp(2, j);
-        cloud->points.push_back(p);
+
+    cout << "Saving object with " << obj.frames.size() << " frames..." << endl;
+
+    for (size_t i = 0; i < obj.frames.size(); ++i) {
+
+        cv::Mat locations;   // output, locations of non-zero pixels
+        cv::findNonZero(obj.masks[i], locations);
+        Eigen::Matrix<double, 4, Eigen::Dynamic> Dp(4, locations.total());
+        Eigen::Matrix<int, 3, Eigen::Dynamic> Pp(3, locations.total());
+        Dp.row(2).setOnes();
+
+        Eigen::Matrix3d Kinv = frames[obj.frames[i]].K.inverse();
+        for (size_t j = 0; j < locations.total(); ++j) {
+            cv::Point p = locations.at<cv::Point>(j);
+            cv::Vec3b c = frames[obj.frames[i]].rgb.at<cv::Vec3b>(p.y, p.x);
+            Pp.block<3, 1>(0, j) << c[2], c[1], c[0];
+            Dp.block<2, 1>(0, j) << 0.5+p.x, 0.5+p.y;
+            Dp(3, j) = double(frames[obj.frames[i]].depth.at<uint16_t>(p.y, p.x))/scaling;
+        }
+
+        Dp.topRows<3>() = Kinv*Dp.topRows<3>();
+        Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / (Dp.row(2).array() / Dp.row(3).array());
+        Dp.row(3).setOnes();
+        Dp = map_pose*frames[obj.frames[i]].pose*Dp;
+        Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / Dp.row(3).array();
+
+
+        for (size_t j = 0; j < locations.total(); ++j) {
+            PointT p; p.getVector3fMap() = Dp.block<3, 1>(0, j).cast<float>();
+            p.r = Pp(0, j); p.g = Pp(1, j); p.b = Pp(2, j);
+            cloud->points.push_back(p);
+        }
+
     }
 
     cout << "Object cloud size: " << cloud->size() << endl;
