@@ -69,7 +69,7 @@ def summarize_objects(data_path):
             poses.append(object_dict['pos']['value2'])
             detection_type.append(object_dict['object_type'])
             timestamps.append(i)
-            going_backward.append(object_dict['going_backward'] == "true")
+            going_backward.append(object_dict['going_backward'])
 
     for ims in images:
         central_images.append(ims[len(ims)/2])
@@ -92,6 +92,6 @@ def summarize_objects(data_path):
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print "Usage: ", sys.argv[0], " path/to/data (--backwards)"
+        print "Usage: ", sys.argv[0], " path/to/data"
     else:
         summarize_objects(sys.argv[1])

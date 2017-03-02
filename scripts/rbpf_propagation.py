@@ -27,10 +27,11 @@ def get_sweep_xmls(data_path):
 def propagate_backwards(data_path):
 
     sweeps = get_sweep_xmls(data_path)
+    sweeps.reverse()
 
     for s in sweeps:
         print s
-        subprocess.call(['rosrun rbpf_processing propagate_change_detection', s])
+        subprocess.call(['rosrun', 'rbpf_processing', 'propagate_change_detection', s, '--backwards'])
 
 def propagate_forwards(data_path):
 

@@ -1,21 +1,27 @@
 <launch>
 
-    <node pkg="rbpf_processing" type="cloud_observation_loader" name="detection_loader" output="screen" respawn="true">
-        <remap from="cloud_paths" to="cloud_paths"/>
-        <remap from="measurement_clouds" to="measurement_clouds"/>
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_detection_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="backward_detected_paths"/>
+        <remap from="measurement_clouds" to="backward_detected_clouds"/>
         <remap from="complete_cloud" to="complete_cloud"/>
     </node>
 
-    <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_loader" output="screen" respawn="true">
-        <remap from="cloud_paths" to="backward_cloud_paths"/>
-        <remap from="measurement_clouds" to="backward_clouds"/>
-        <remap from="complete_cloud" to="back_complete_cloud"/>
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_detection_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="forward_detected_paths"/>
+        <remap from="measurement_clouds" to="forward_detected_clouds"/>
+        <remap from="complete_cloud" to="forward_complete_cloud"/>
     </node>
 
-    <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_loader" output="screen" respawn="true">
-        <remap from="cloud_paths" to="forward_cloud_paths"/>
-        <remap from="measurement_clouds" to="forward_clouds"/>
-        <remap from="complete_cloud" to="forward_complete_cloud"/>
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_propagation_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="backward_propagated_paths"/>
+        <remap from="measurement_clouds" to="backward_propagated_clouds"/>
+        <remap from="complete_cloud" to="back_prop_complete_cloud"/>
+    </node>
+
+    <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_propagation_loader" output="screen" respawn="true">
+        <remap from="cloud_paths" to="forward_propagated_paths"/>
+        <remap from="measurement_clouds" to="forward_propagated_clouds"/>
+        <remap from="complete_cloud" to="forward_prop_complete_cloud"/>
     </node>
 
 </launch>

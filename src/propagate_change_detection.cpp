@@ -420,10 +420,23 @@ void propagate_changes(const string& sweep_xml, bool backwards)
 
     ObjectVec filtered_objects = filter_objects(propagated_objects, current_objects);
 
+    ObjectVec filtered_detected_objects;
+    if (backwards) { // these should be filtered by the backward detected objects (but probably not backwards propagated?)
+        ObjectVec current_backward_objects;
+        tie(current_backward_objects, current_frames, map_pose) = load_objects(sweep_xml, backwards, false);
+        current_objects.erase(std::remove_if(current_objects.begin(), current_objects.end(), [] (const SegmentedObject& obj) {
+            return obj.object_type == "propagated"; // we do not want to store the forward propagated objects twice
+        }), current_objects.end());
+        filtered_detected_objects = filter_objects(current_objects, current_backward_objects);
+    }
+    else { // the backward detected objects should just be stored directly
+        filtered_detected_objects = current_objects;
+    }
+
     // save forwards and backwards objects except for the ones that overlap and the forward filtered objects
     save_objects(filtered_objects, current_frames, map_pose, sweep_xml, backwards);
 
-    save_objects(current_objects, current_frames, map_pose, sweep_xml, !backwards);
+    save_objects(filtered_detected_objects, current_frames, map_pose, sweep_xml, !backwards);
 }
 
 
