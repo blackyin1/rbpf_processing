@@ -84,16 +84,16 @@ struct SegmentedObject {
     template <class Archive>
     void load(Archive& archive)
     {
-        boost::filesystem::path object_path(object_folder);
-
         std::vector<std::string> depth_paths, mask_paths, rgb_paths;
         archive(object_type, going_backward, pos, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
 
+        boost::filesystem::path object_path(object_folder);
+
         for (size_t i = 0; i < depth_paths.size(); ++i) {
-            depth_masks.push_back(cv::imread((object_path / depth_paths[i]).string()));
+            depth_masks.push_back(cv::imread((object_path / depth_paths[i]).string(), CV_LOAD_IMAGE_GRAYSCALE));
         }
         for (size_t i = 0; i < mask_paths.size(); ++i) {
-            masks.push_back(cv::imread((object_path / mask_paths[i]).string()));
+            masks.push_back(cv::imread((object_path / mask_paths[i]).string(), CV_LOAD_IMAGE_GRAYSCALE));
         }
         for (size_t i = 0; i < rgb_paths.size(); ++i) {
             cropped_rgbs.push_back(cv::imread((object_path / rgb_paths[i]).string()));
@@ -112,5 +112,6 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
 void save_complete_propagated_cloud(std::vector<CloudT::Ptr>& clouds, const std::string& sweep_xml, bool backwards);
 void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& map_pose,
                   const std::string& sweep_xml, bool backwards);
+ObjectVec load_propagated_objects(const std::string& sweep_xml, bool backwards);
 
 #endif // DATA_CONVENIENCE_H

@@ -167,6 +167,7 @@ target_link_libraries(data_convenience
 )
 
 target_link_libraries(xml_convenience
+  data_convenience
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}

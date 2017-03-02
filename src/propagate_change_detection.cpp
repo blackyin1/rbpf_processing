@@ -26,6 +26,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
     double scaling = 1000.0;
 
     // some premature optimization....
+    /*
     PoseVec Mp;
     for (size_t i = 0; i < previous_frames.size(); ++i) {
         Eigen::Matrix4d Kp = Eigen::Matrix4d::Identity();
@@ -47,9 +48,13 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
         cout << "Mci: \n" << Mci << endl;
         cout << "Kc: " << Kc << endl;
     }
+    */
 
+    size_t counter = 0;
     ObjectVec projected_objects;
     for (SegmentedObject& obj : previous_objects) {
+
+        cout << "Going through previous object " << counter << endl;
 
         // project this into every frame of the current sweep, look at the static areas
         // ok, let's keep it like that for now, if it's static it should be propagated
@@ -73,10 +78,14 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             // assumption: one object here can only correspond to one object in new frame
             for (size_t i = 0; i < obj.frames.size(); ++i) {
 
-                cout << "Going through previous object " << i << endl;
-
                 size_t frame_ind = obj.frames[i];
+
+                //cout << "Going through previous object frame " << i << " with frame ind " << frame_ind << endl;
+                //cout << "Mask sum: " << cv::sum(obj.masks[i])[0] << endl;
                 //Eigen::Matrix4d relative_pose = previous_transforms[frame_ind];
+
+                //cv::imshow("original rgb", obj.cropped_rgbs[i]);
+                //cv::waitKey();
 
                 if (false) {
                     cv::Mat previous_rgb = previous_frames[frame_ind].rgb.clone();
@@ -93,7 +102,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
                 Eigen::Matrix<double, 4, Eigen::Dynamic> Dp(4, locations.total());
                 Dp.row(3).setOnes();
 
-                cout << "Found nonzero with size " << locations.rows << "x" << locations.cols << ", type: " << locations.type() << endl;
+                //cout << "Found nonzero with size " << locations.rows << "x" << locations.cols << ", type: " << locations.type() << endl;
 
                 Eigen::Matrix3d Kpinv = previous_frames[frame_ind].K.inverse();
                 for (size_t j = 0; j < locations.total(); ++j) {
@@ -110,10 +119,10 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
                     Dp.block<3, 1>(0, j) *= depth/Dp(2, j);
                 }
 
-                cout << "Done computing points..." << endl;
+                //cout << "Done computing points..." << endl;
 
 
-                cout << "Going through current frame " << j << endl;
+                //cout << "Going through current frame " << j << endl;
 
                 // short wire here if there is no overlap between frames. Best way is probably to check
                 // angle between z vectors projected in x-y plane. If > 90 degress, break
@@ -152,6 +161,8 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 
             }
 
+            //cout << "Projection pixels: " << pixel_counter << endl;
+
             if (pixel_counter > 1000) { // this is an arbitrary threshold
                 projected_masks.push_back(mask);
                 projected_depths.push_back(depth);
@@ -172,7 +183,7 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             }
         }
 
-        cout << "Found " << projected_masks.size() << " frames, converting..." << endl;
+        //cout << "Found " << projected_masks.size() << " frames, converting..." << endl;
 
         if (!projected_masks.empty()) {
             SegmentedObject proj_obj;
@@ -183,6 +194,8 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
             proj_obj.going_backward = obj.going_backward;
             projected_objects.push_back(proj_obj);
         }
+
+        ++counter;
     }
 
     cout << "Done projecting objects..." << endl;
@@ -206,6 +219,9 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
     for (SegmentedObject& obj : projected_objects) {
 
         cout << "Going through object " << counter << endl;
+        if (obj.object_type == "propagated") {
+            cout << "Propagated" << endl;
+        }
 
         double absdiff = 0;
         double totsum = 0;
@@ -379,14 +395,14 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     FrameVec previous_frames;
     Eigen::Matrix4d previous_pose;
     // note that these objects should also, eventually include the ones that have been propagated forwards
-    tie(previous_objects, previous_frames, previous_pose) = loadObjects(previous_xml, backwards);
+    tie(previous_objects, previous_frames, previous_pose) = load_objects(previous_xml, backwards, true);
 
 
     ObjectVec current_objects;
     FrameVec current_frames;
     Eigen::Matrix4d map_pose;
     // note that these objects should also, eventually include the ones that have been propagated backwards
-    tie(current_objects, current_frames, map_pose) = loadObjects(sweep_xml, !backwards); // we are interested in the objects coming from the other direction
+    tie(current_objects, current_frames, map_pose) = load_objects(sweep_xml, !backwards, true); // we are interested in the objects coming from the other direction
 
 
     ObjectVec projected_objects = project_objects(current_transforms, previous_transforms, current_frames,
@@ -399,7 +415,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     // doing this pass
     ObjectVec propagated_objects = propagate_objects(current_frames, projected_objects);
 
-    //save_objects(propagated_objects, current_frames, map_pose, sweep_xml, backwards);
+    //save_objects(projected_objects, current_frames, map_pose, sweep_xml, backwards);
 
 
     ObjectVec filtered_objects = filter_objects(propagated_objects, current_objects);

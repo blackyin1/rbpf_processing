@@ -304,7 +304,7 @@ pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
     return make_pair(frames, poses);
 }
 
-tuple<ObjectVec, FrameVec, Eigen::Matrix4d> loadObjects(const string& path, bool backwards)
+tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, bool backwards, bool load_propagated)
 {
     printf("loadModels(%s)\n",path.c_str());
 
@@ -345,7 +345,7 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> loadObjects(const string& path, bool
 
         SegmentedObject object;
         object.object_type = "detected";
-        object.going_backward = !backwards;
+        object.going_backward = backwards;
         //reglib::Model * mod = new reglib::Model();
         //mod->keyval = roomLogName+"_object_"+to_string(objcounter);
         //printf("object label: %s\n",mod->keyval.c_str());
@@ -401,6 +401,11 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> loadObjects(const string& path, bool
     }
 
     cout << "Done loading objects for " << path << endl;
+
+    if (load_propagated) {
+        ObjectVec propagated_objects = load_propagated_objects(path, backwards);
+        objects.insert(objects.end(), propagated_objects.begin(), propagated_objects.end());
+    }
 
     Eigen::Affine3d e;
     tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e);

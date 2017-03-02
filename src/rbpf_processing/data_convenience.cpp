@@ -110,16 +110,15 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
             cv::Point p = locations.at<cv::Point>(j);
             cv::Vec3b c = frames[obj.frames[i]].rgb.at<cv::Vec3b>(p.y, p.x);
             Pp.block<3, 1>(0, j) << c[2], c[1], c[0];
-            Dp.block<2, 1>(0, j) << 0.5+p.x, 0.5+p.y;
+            Dp.block<2, 1>(0, j) << p.x, p.y;
             Dp(3, j) = double(frames[obj.frames[i]].depth.at<uint16_t>(p.y, p.x))/scaling;
         }
 
         Dp.topRows<3>() = Kinv*Dp.topRows<3>();
-        Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / (Dp.row(2).array() / Dp.row(3).array());
+        Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() * (Dp.row(3).array() / Dp.row(2).array());
         Dp.row(3).setOnes();
         Dp = map_pose*frames[obj.frames[i]].pose*Dp;
         Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / Dp.row(3).array();
-
 
         for (size_t j = 0; j < locations.total(); ++j) {
             PointT p; p.getVector3fMap() = Dp.block<3, 1>(0, j).cast<float>();
@@ -220,4 +219,35 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
     }
 
     cout << "Done saving objects..." << endl;
+}
+
+ObjectVec load_propagated_objects(const string& sweep_xml, bool backwards)
+{
+    ObjectVec objects;
+
+    PathT objects_path = PathT(sweep_xml).parent_path() / "consolidated_objects";
+    if (!boost::filesystem::exists(objects_path)) {
+        return objects;
+    }
+
+
+    for (size_t i = 0; ; ++i) {
+        PathT object_path = objects_path / (string("object") + num_str(i));
+        if (!boost::filesystem::exists(object_path)) {
+            break;
+        }
+        PathT object_file = object_path / "segmented_object.json";
+        SegmentedObject obj;
+        ifstream in(object_file.string());
+        {
+            cereal::JSONInputArchive archive_i(in);
+            archive_i(obj);
+        }
+        if (obj.going_backward == backwards) {
+            cout << "LOADING PROPAGATED OBJECT!" << endl;
+            objects.push_back(obj);
+        }
+    }
+
+    return objects;
 }

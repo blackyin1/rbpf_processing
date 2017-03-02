@@ -64,7 +64,7 @@ int main(int argc, char** argv)
 
     string room_path(argv[1]);
 
-    tuple<ObjectVec, FrameVec, Eigen::Matrix4d> objects = loadObjects(room_path);
+    tuple<ObjectVec, FrameVec, Eigen::Matrix4d> objects = load_objects(room_path);
     obsolete_save_objects(room_path, get<0>(objects), get<1>(objects));
 
     return 0;

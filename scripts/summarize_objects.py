@@ -58,10 +58,13 @@ def summarize_objects(data_path):
         objects = get_objects(s)
         for o in objects:
             print i, o
-            clouds.append(str(os.path.join(o, "cloud.pcd")))
             object_file = os.path.join(o, "segmented_object.json")
+            if not os.path.exists(object_file):
+                print object_file, "does not exist, skipping..."
+                continue
             with open(object_file) as data_file:
                 object_dict = json.load(data_file)['object']
+            clouds.append(str(os.path.join(o, "cloud.pcd")))
             images.append([os.path.join(o, im) for im in object_dict['rgb_paths']])
             poses.append(object_dict['pos']['value2'])
             detection_type.append(object_dict['object_type'])
