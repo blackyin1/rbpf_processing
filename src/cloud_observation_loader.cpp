@@ -37,6 +37,16 @@ public:
     {
         string line(str->data);
         if (line.empty()) {
+            CloudT cloud;
+            PointT p;
+            p.getVector3fMap().setZero();
+            p.rgba = 0.0;
+            cloud.push_back(p);
+            sensor_msgs::PointCloud2 cloud_msg;
+            pcl::toROSMsg(cloud, cloud_msg);
+            cloud_msg.header.frame_id = "/map";
+            cloud_msg.header.stamp = ros::Time::now();
+            pub.publish(cloud_msg);
             return;
         }
         vector<string> paths;

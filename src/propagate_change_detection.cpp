@@ -329,7 +329,8 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
         for (SegmentedObject& prev : filter_by) {
 
             double total_overlap = 0;
-            double total_pixels = 0;
+            double total_first_pixels = 0;
+            double total_second_pixels = 0;
 
             // these share frames, let's step through frames in parallell
             size_t i = 0; size_t j = 0;
@@ -345,17 +346,22 @@ ObjectVec filter_objects(ObjectVec& objects, ObjectVec& filter_by)
                 // obj.frames[i] == prev.frames[j]
                 cv::Mat overlap;
                 cv::bitwise_and(obj.masks[i], prev.masks[j], overlap);
-                cv::Mat total;
-                cv::bitwise_or(obj.masks[i], prev.masks[j], total);
+                //cv::Mat total;
+                //cv::bitwise_or(obj.masks[i], prev.masks[j], total);
 
                 total_overlap += cv::sum(overlap)[0];
-                total_pixels += cv::sum(total)[0];
+
+                total_first_pixels += cv::sum(obj.masks[i])[0];
+                total_second_pixels += cv::sum(prev.masks[j])[0];
 
                 ++i;
                 ++j;
             }
 
-            if (total_pixels > 0 && total_overlap / total_pixels > 0.3) { // pretty liberal but: it's not the same!
+            double threshold_ratio = 0.5;
+            if (total_first_pixels > 0 && total_second_pixels > 0 &&
+                (total_overlap / total_first_pixels > threshold_ratio ||
+                 total_overlap / total_second_pixels > threshold_ratio)) { // pretty liberal but: it's not the same!
                 found = true;
                 break;
             }
