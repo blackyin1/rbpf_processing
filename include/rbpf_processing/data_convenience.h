@@ -112,6 +112,6 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
 void save_complete_propagated_cloud(std::vector<CloudT::Ptr>& clouds, const std::string& sweep_xml, bool backwards);
 void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& map_pose,
                   const std::string& sweep_xml, bool backwards);
-ObjectVec load_propagated_objects(const std::string& sweep_xml, bool backwards);
+ObjectVec load_propagated_objects(const std::string& sweep_xml, bool do_filter = false, bool backwards = false);
 
 #endif // DATA_CONVENIENCE_H

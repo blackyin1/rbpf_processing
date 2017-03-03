@@ -148,6 +148,7 @@ add_executable(process_detections src/process_detections.cpp)
 add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
 add_executable(propagate_change_detection src/propagate_change_detection.cpp)
 add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
+add_executable(visualize_segmentation_surfels src/visualize_segmentation_surfels.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -206,6 +207,15 @@ target_link_libraries(propagate_change_detection
 )
 
 target_link_libraries(cloud_observation_loader
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(visualize_segmentation_surfels
+  data_convenience
+  xml_convenience
+  ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}

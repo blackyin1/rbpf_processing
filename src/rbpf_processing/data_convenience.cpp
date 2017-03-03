@@ -221,7 +221,7 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
     cout << "Done saving objects..." << endl;
 }
 
-ObjectVec load_propagated_objects(const string& sweep_xml, bool backwards)
+ObjectVec load_propagated_objects(const string& sweep_xml, bool do_filter, bool backwards)
 {
     ObjectVec objects;
 
@@ -243,7 +243,7 @@ ObjectVec load_propagated_objects(const string& sweep_xml, bool backwards)
             cereal::JSONInputArchive archive_i(in);
             archive_i(obj);
         }
-        if (obj.going_backward == backwards) {
+        if (!do_filter || obj.going_backward == backwards) {
             cout << "LOADING PROPAGATED OBJECT!" << endl;
             objects.push_back(obj);
         }

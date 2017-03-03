@@ -403,7 +403,7 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, boo
     cout << "Done loading objects for " << path << endl;
 
     if (load_propagated) {
-        ObjectVec propagated_objects = load_propagated_objects(path, backwards);
+        ObjectVec propagated_objects = load_propagated_objects(path, true, backwards);
         objects.insert(objects.end(), propagated_objects.begin(), propagated_objects.end());
     }
 
