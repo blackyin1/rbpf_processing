@@ -234,11 +234,16 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
             // let's just keep the images as integers, we can convert to float after summing differences
             cv::Mat bg;
             current_frames[obj.frames[i]].depth.convertTo(bg, CV_32SC1);
-            cv::Mat inverted_mask;
+            /*cv::Mat inverted_mask;
             cv::bitwise_not(obj.masks[i], inverted_mask);
-            bg.setTo(0, inverted_mask);
+            bg.setTo(0, inverted_mask);*/
             cv::Mat proj;
             obj.depth_masks[i].convertTo(proj, CV_32SC1);
+
+            cv::Mat combined_mask;
+            cv::bitwise_and(obj.masks[i], bg > 0, combined_mask);
+            cv::Mat inverted_mask;
+            cv::bitwise_not(combined_mask, inverted_mask);
 
             /*
             cout << "Current frames size: " << current_frames.size() << ", index: " << obj.frames[i] << endl;
@@ -248,10 +253,15 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
             */
 
             cv::Mat diff = proj - bg; // we should probably change this to SC32?
+            diff.setTo(0, inverted_mask);
             cout << cv::sum(cv::abs(diff))[0] << endl;
             absdiff += 1.0/scaling*cv::sum(cv::abs(diff))[0];
             totsum += 1.0/scaling*cv::sum(diff)[0];
-            totpixels += 1.0/255.0*cv::sum(obj.masks[i])[0];
+            //totpixels += 1.0/255.0*cv::sum(obj.masks[i])[0];
+            totpixels += 1.0/255.0*cv::sum(combined_mask)[0];
+
+            //cv::imshow("Diff", diff);
+            //cv::waitKey();
 
             cv::Mat mask;
             bitwise_and(cv::abs(diff) < int(0.05*scaling), obj.masks[i], mask);
@@ -263,13 +273,13 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
         }
 
         absdiff /= totpixels;
-        totsum /= totpixels;
+        totsum /= std::max(totpixels, 1000.0);
 
         cout << "Absdiff: " << absdiff << endl;
         cout << "Pixels: " << totpixels << endl;
         cout << "Totsum: " << totsum << endl;
 
-        if (absdiff < 0.16) { // 0.03) { // it's probably there still
+        if (absdiff < 0.05) { // where does this huuuuge threshold come from?
             SegmentedObject propagated;
             propagated.object_type = obj.object_type;
             propagated.going_backward = obj.going_backward;
@@ -282,7 +292,7 @@ ObjectVec propagate_objects(FrameVec& current_frames, ObjectVec& projected_objec
             new_objects.push_back(propagated);
             cout << "Present" << endl;
         }
-        else if (totsum > 0.15) { // it's probably occluded
+        else if (totsum > 0.05) { // it's probably occluded
             // the question is, what should we do in this case?
             // let's propagate it, but keep a flag indicating occlusion
             // btw, wouldn't we need to also propagate depth in that case?
