@@ -101,9 +101,9 @@ void save_segmentation_surfels(const string& sweep_xml)
         }
         SurfelT& q = surfel_cloud->at(j);
         uint8_t* rgb = (uint8_t*)(&q.rgba);
-        rgb[2] = r;
-        rgb[1] = g;
-        rgb[0] = b;
+        rgb[2] = r / 2 + rgb[2] / 2;
+        rgb[1] = g / 2 + rgb[1] / 2;
+        rgb[0] = b / 2 + rgb[0] / 2;
     }
 
     pcl::io::savePCDFileBinary(segmented_path.string(), *surfel_cloud);

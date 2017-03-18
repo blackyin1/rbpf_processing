@@ -137,6 +137,10 @@ add_library(xml_convenience
    src/${PROJECT_NAME}/xml_convenience.cpp
 )
 
+add_library(object_processing
+   src/${PROJECT_NAME}/object_processing.cpp
+)
+
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
@@ -149,6 +153,7 @@ add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
 add_executable(propagate_change_detection src/propagate_change_detection.cpp)
 add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
 add_executable(visualize_segmentation_surfels src/visualize_segmentation_surfels.cpp)
+add_executable(consolidate_detections src/consolidate_detections.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -161,6 +166,14 @@ add_executable(visualize_segmentation_surfels src/visualize_segmentation_surfels
 #)
 
 target_link_libraries(data_convenience
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(object_processing
+  data_convenience
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}
@@ -215,6 +228,16 @@ target_link_libraries(cloud_observation_loader
 target_link_libraries(visualize_segmentation_surfels
   data_convenience
   xml_convenience
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(consolidate_detections
+  data_convenience
+  xml_convenience
+  object_processing
   ${OpenCV_LIBS}
   ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
   ${catkin_LIBRARIES}

@@ -159,7 +159,7 @@ void save_complete_propagated_cloud(vector<CloudT::Ptr>& clouds, const string& s
 }
 
 void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& map_pose,
-                  const string& sweep_xml, bool backwards)
+                  const string& sweep_xml, bool backwards, bool save_cloud)
 {
     if (objects.empty()) {
         return;
@@ -214,7 +214,7 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
         ++i;
     }
 
-    if (!clouds.empty()) {
+    if (!clouds.empty() && save_cloud) {
         save_complete_propagated_cloud(clouds, sweep_xml, backwards);
     }
 

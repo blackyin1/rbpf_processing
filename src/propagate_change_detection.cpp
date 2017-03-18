@@ -80,6 +80,16 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 
                 size_t frame_ind = obj.frames[i];
 
+                // short wire here if there is no overlap between frames. Best way is probably to check
+                // angle between z vectors projected in x-y plane. If > 90 degress, break
+                Eigen::Vector3d d1 = previous_transforms[frame_ind].block<3, 1>(0, 2);
+                Eigen::Vector3d d2 = current_transforms[j].block<3, 1>(0, 2);
+                double angle = atan2(d1.cross(d2).norm(), d1.dot(d2));
+                if (d1.dot(d2) < 0 || fabs(angle) > 0.66*0.5*M_PI) { // Kinect has 59 degrees FOV
+                    cout << "Skipping" << endl;
+                    continue;
+                }
+
                 //cout << "Going through previous object frame " << i << " with frame ind " << frame_ind << endl;
                 //cout << "Mask sum: " << cv::sum(obj.masks[i])[0] << endl;
                 //Eigen::Matrix4d relative_pose = previous_transforms[frame_ind];
@@ -123,16 +133,6 @@ ObjectVec project_objects(const PoseVec& current_transforms, const PoseVec& prev
 
 
                 //cout << "Going through current frame " << j << endl;
-
-                // short wire here if there is no overlap between frames. Best way is probably to check
-                // angle between z vectors projected in x-y plane. If > 90 degress, break
-                Eigen::Vector3d d1 = previous_transforms[frame_ind].block<3, 1>(0, 2);
-                Eigen::Vector3d d2 = current_transforms[j].block<3, 1>(0, 2);
-                double angle = atan2(d1.cross(d2).norm(), d1.dot(d2));
-                /*if (d1.dot(d2) < 0 || fabs(angle) > 0.5*M_PI) {
-                    cout << "Skipping" << endl;
-                    continue;
-                }*/
 
                 //Eigen::Matrix<double, 4, Eigen::Dynamic> Dc = Mc[j]*Mp[i]*Dp;
 

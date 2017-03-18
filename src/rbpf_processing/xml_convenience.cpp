@@ -304,6 +304,21 @@ pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
     return make_pair(frames, poses);
 }
 
+pair<FrameVec, Eigen::Matrix4d> load_frames_pose(const string& path)
+{
+    SimpleXMLParser<pcl::PointXYZRGB>::RoomData roomData  = SimpleXMLParser<pcl::PointXYZRGB>::loadRoomFromXML(path, vector<string>{"RoomIntermediateCloud"}, false, true);
+
+    FrameVec frames;
+    PoseVec poses;
+    //tie(frames, poses) = readViewXML(roomLogName, sweep_folder+"ViewGroup.xml"); // this does not seem to work but why use this if we have the metaroom parser?
+    tie(frames, poses) = load_frames_poses(roomData);
+
+    Eigen::Affine3d e;
+    tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e);
+
+    return make_pair(frames, e.matrix());
+}
+
 tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, bool backwards, bool load_propagated)
 {
     printf("loadModels(%s)\n",path.c_str());
