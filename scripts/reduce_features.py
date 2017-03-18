@@ -9,10 +9,10 @@ import json
 
 def dimension_reduction(data_path):
 
-    with open(os.path.join(data_path, "feature_labels.json")) as data_file:
-        feature_labels_dict = json.load(data_file)
+    #with open(os.path.join(data_path, "feature_labels.json")) as data_file:
+    #    feature_labels_dict = json.load(data_file)
 
-    labels = feature_labels_dict['value0']
+    #labels = feature_labels_dict['value0']
 
     npzfile = np.load(os.path.join(data_path, "deep_object_features.npz"))
     features = npzfile['features']
@@ -25,7 +25,7 @@ def dimension_reduction(data_path):
 
     print "Feature shape: ", features.shape
     print "Reduced shape: ", red_features.shape
-    print "Labels length: ", len(labels)
+    #print "Labels length: ", len(labels)
 
     print "Done computing tsne reduction..."
 
