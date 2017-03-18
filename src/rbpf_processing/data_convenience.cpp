@@ -4,6 +4,7 @@ using namespace std;
 
 void add_cropped_rgb_to_object(SegmentedObject& obj, FrameVec& frames)
 {
+    obj.cropped_rgbs.clear();
     for (size_t i = 0; i < obj.frames.size(); ++i) {
         cv::Mat points;
         cv::findNonZero(obj.masks[i], points);
@@ -216,6 +217,61 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
 
     if (!clouds.empty() && save_cloud) {
         save_complete_propagated_cloud(clouds, sweep_xml, backwards);
+    }
+
+    cout << "Done saving objects..." << endl;
+}
+
+void save_complete_objects(ObjectVec& objects, FrameVec& frames,
+                           const Eigen::Matrix4d& map_pose, const string& sweep_xml)
+{
+    if (objects.empty()) {
+        return;
+    }
+
+    cout << "Saving objects, creating directory..." << endl;
+
+    PathT objects_path = PathT(sweep_xml).parent_path() / "consolidated_objects";
+    if (boost::filesystem::exists(objects_path)) {
+        boost::filesystem::remove_all(objects_path);
+    }
+    boost::filesystem::create_directory(objects_path);
+
+    cout << "Creating object subdirectories..." << endl;
+
+    // how many objects are already saved in this folder?
+    size_t i = 0;
+    while (true) {
+        PathT object_path = objects_path / (string("object") + num_str(i));
+        if (!boost::filesystem::exists(object_path)) {
+            break;
+        }
+        ++i;
+    }
+
+    // ok, save this in a format that we can use to extract the CNN features (JPEG FTW)
+    // one thing to note: we'll have to do another pass where we get all the image paths
+    // fortunately, there's python
+    for (SegmentedObject& obj : objects) {
+        cout << "Saving object " << i << endl;
+        // let's create a folder for every object
+        PathT object_path = objects_path / (string("object") + num_str(i));
+        boost::filesystem::create_directory(object_path);
+        obj.object_folder = object_path.string();
+        PathT object_file = object_path / "segmented_object.json";
+        cout << "Adding rgb images..." << endl;
+        add_cropped_rgb_to_object(obj, frames);
+        cout << "Adding pos to object..." << endl;
+        add_pos_to_object(obj, frames, map_pose);
+        cout << "Writing object cloud..." << endl;
+        save_object_cloud(obj, frames, map_pose, object_path.string());
+        cout << "Writing object..." << endl;
+        ofstream out(object_file.string());
+        {
+            cereal::JSONOutputArchive archive_o(out);
+            archive_o(cereal::make_nvp("object", obj));
+        }
+        ++i;
     }
 
     cout << "Done saving objects..." << endl;

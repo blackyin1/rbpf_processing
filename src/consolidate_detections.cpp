@@ -138,17 +138,27 @@ void consolidate_detections(const string& sweep_xml, bool visualize)
         // visualize after merging
         visualize_object_clouds(clouds_before, clouds_after);
     }
+
+    if (!visualize) {
+        save_complete_objects(objects, frames, map_pose, sweep_xml);
+    }
 }
 
 int main(int argc, char** argv)
 {
+    bool visualize = false;
     if (argc < 2) {
-        cout << "Usage: " << argv[0] << " /path/to/room.xml" << endl;
+        cout << "Usage: " << argv[0] << " /path/to/room.xml (--visualize)" << endl;
         return 0;
+    }
+    else if (argc == 3) {
+        if (string(argv[2]) == "--visualize") {
+            visualize = true;
+        }
     }
 
     string sweep_xml(argv[1]);
-    consolidate_detections(sweep_xml, true);
+    consolidate_detections(sweep_xml, visualize);
 
     return 0;
 }
