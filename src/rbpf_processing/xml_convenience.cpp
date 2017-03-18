@@ -35,7 +35,8 @@ pair<string, PoseVec> read_previous_sweep_params(const string& sweep_xml, bool b
     QFile file(filename.c_str());
     if (!file.exists()){
         cout << "Could not open file " << filename.string() << endl;
-        exit(-1);
+        //exit(-1);
+        return make_pair("", PoseVec {});
     }
     file.open(QIODevice::ReadOnly);
     QXmlStreamReader xmlReader(&file);

@@ -403,6 +403,17 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     PoseVec current_transforms;
     string previous_xml;
     tie(previous_xml, current_transforms) = read_previous_sweep_params(sweep_xml, backwards);
+    if (current_transforms.empty()) {
+        if (!backwards) {
+            ObjectVec current_objects;
+            FrameVec current_frames;
+            Eigen::Matrix4d map_pose;
+            // note that these objects should also, eventually include the ones that have been propagated backwards
+            tie(current_objects, current_frames, map_pose) = load_objects(sweep_xml, !backwards, true); // we are interested in the objects coming from the other direction
+            save_objects(current_objects, current_frames, map_pose, sweep_xml, !backwards);
+        }
+        return;
+    }
 
     SweepT previous_data = semantic_map_load_utilties::loadIntermediateCloudsCompleteDataFromSingleSweep<PointT>(previous_xml);
     PoseVec previous_transforms = load_transforms_for_data(previous_data);
