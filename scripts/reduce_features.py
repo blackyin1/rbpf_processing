@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import sys
 import os
 import json
+import rospkg
 
 def dimension_reduction(data_path):
 
@@ -14,16 +15,27 @@ def dimension_reduction(data_path):
 
     #labels = feature_labels_dict['value0']
 
+    rospack = rospkg.RosPack()
+    pkg_path = os.path.abspath(rospack.get_path("rbpf_processing"))
+    prior_path = os.path.join(pkg_path, "data", "prior_full_features.npz")
+    priorfile = np.load(prior_path)
+    prior_features = priorfile['features']
+
     npzfile = np.load(os.path.join(data_path, "deep_object_features.npz"))
     features = npzfile['features']
 
     print "Computing tsne reduction..."
+    N = features.shape[0]
+
+    all_features = np.vstack((features, prior_features))
 
     n_components = 2
     tsne = manifold.TSNE(n_components=n_components, init='pca', random_state=0)
-    red_features = tsne.fit_transform(features)
+    red_all_features = tsne.fit_transform(all_features)
+    red_features = red_all_features[:N]
 
     print "Feature shape: ", features.shape
+    print "Red all feature shape: ", red_all_features.shape
     print "Reduced shape: ", red_features.shape
     #print "Labels length: ", len(labels)
 
