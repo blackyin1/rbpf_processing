@@ -29,7 +29,7 @@ def dimension_reduction(data_path):
 
     all_features = np.vstack((features, prior_features))
 
-    n_components = 2
+    n_components = 4
     tsne = manifold.TSNE(n_components=n_components, init='pca', random_state=0)
     red_all_features = tsne.fit_transform(all_features)
     red_features = red_all_features[:N]
