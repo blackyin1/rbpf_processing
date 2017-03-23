@@ -7,6 +7,7 @@ import re
 import subprocess
 import json
 import numpy as np
+import xml.etree.ElementTree as ET
 #import natsort
 
 def sortkey_natural(s):
@@ -41,6 +42,10 @@ def get_objects(s):
 
     return dir_list
 
+def get_trailing_number(s):
+    m = re.search(r'\d+$', s)
+    return int(m.group()) if m else None
+
 def summarize_objects(data_path):
 
     sweeps = get_sweep_xmls(data_path)
@@ -52,8 +57,16 @@ def summarize_objects(data_path):
     timestamps = []
     central_images = []
     going_backward = []
+    waypoint_names = []
+    location_ids = []
 
     for i, s in enumerate(sweeps):
+        tree = ET.parse(s)
+        root = tree.getroot()
+        room_id_element = root.find("RoomStringId")
+        location_id = get_trailing_number(room_id_element.text)
+        print room_id_element.text
+        print location_id
         print s
         objects = get_objects(s)
         for o in objects:
@@ -70,6 +83,8 @@ def summarize_objects(data_path):
             detection_type.append(object_dict['object_type'])
             timestamps.append(i)
             going_backward.append(object_dict['going_backward'])
+            waypoint_names.append(room_id_element.text)
+            location_ids.append(location_id)
 
     for ims in images:
         central_images.append(ims[len(ims)/2])
@@ -77,6 +92,7 @@ def summarize_objects(data_path):
     poses = np.array(poses)
     timestamps = np.array(timestamps)
     going_backward = np.array(going_backward, dtype=bool)
+    location_ids = np.array(location_ids, dtype=int)
 
     print "Images: ", len(images)
     print "Clouds: ", len(clouds)
@@ -86,8 +102,8 @@ def summarize_objects(data_path):
     print "Central images", len(central_images)
 
     summary_path = os.path.abspath(os.path.join(data_path, "data_summary.npz"))
-    np.savez(summary_path, images=images, central_images=central_images, clouds=clouds, poses=poses,
-                           detection_type=detection_type, timestamps=timestamps, going_backward=going_backward)
+    np.savez(summary_path, images=images, central_images=central_images, clouds=clouds, poses=poses, detection_type=detection_type,
+                           timestamps=timestamps, going_backward=going_backward, location_ids=location_ids)
 
 if __name__ == '__main__':
 

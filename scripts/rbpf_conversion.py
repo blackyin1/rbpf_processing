@@ -39,7 +39,8 @@ def convert_observations(data_path, dummy_features):
                                 feature_measurement_std = 5.0,
                                 clouds = clouds,
                                 detection_type = objects_file['detection_type'],
-                                going_backward = objects_file['going_backward'])
+                                going_backward = objects_file['going_backward'],
+                                location_ids = objects_file['location_ids'])
 
     #print timestamps
 
