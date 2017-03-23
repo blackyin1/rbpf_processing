@@ -25,9 +25,12 @@ public:
     ros::Subscriber sub;
     ros::Publisher pub;
     ros::Publisher sweep_pub;
+    bool load_rooms;
 
     CloudObservationLoader() : n()
     {
+        ros::NodeHandle pn("~");
+        pn.param<bool>("load_rooms", load_rooms, true);
         pub = n.advertise<sensor_msgs::PointCloud2>("measurement_clouds", 50);
         sweep_pub = n.advertise<sensor_msgs::PointCloud2>("complete_cloud", 50);
         sub = n.subscribe("cloud_paths", 50, &CloudObservationLoader::callback, this);
@@ -77,14 +80,17 @@ public:
         cloud_msg.header.stamp = ros::Time::now();
         pub.publish(cloud_msg);
 
-        if (!sweep_path.empty()) {
+        if (load_rooms && !sweep_path.empty()) {
             PathT cloud_path = sweep_path / "complete_cloud.pcd";
             if (!boost::filesystem::exists(cloud_path)) {
                 return;
             }
             RoomT roomData  = SimpleXMLParser<PointT>::loadRoomFromXML((sweep_path / "room.xml").string(), vector<string>{"RoomIntermediateCloud"}, false, false);
             Eigen::Affine3d e;
-            tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e);
+            //tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransforms[0], e); // NOTE: this is how it used to be done
+            tf::transformTFToEigen(roomData.vIntermediateRoomCloudTransformsRegistered[0], e);
+
+            //cout << "Transform: " << e.matrix() << endl;
 
             CloudT::Ptr cloud(new CloudT);
             pcl::io::loadPCDFile(cloud_path.string(), *cloud);
@@ -98,7 +104,7 @@ public:
             pcl::transformPointCloud(cloud_filtered, cloud_transformed, e.matrix());
 
             sensor_msgs::PointCloud2 sweep_msg;
-            pcl::toROSMsg(cloud_transformed, sweep_msg);
+            pcl::toROSMsg(cloud_filtered, sweep_msg);
             sweep_msg.header.frame_id = "/map";
             sweep_msg.header.stamp = ros::Time::now();
             sweep_pub.publish(sweep_msg);
