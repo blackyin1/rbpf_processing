@@ -8,6 +8,35 @@ import os
 import json
 import rospkg
 
+def compute_covariance(red_features, text_labels):
+
+    features = red_features.copy()
+    nbr_points = features.shape[0]
+    labels = np.zeros((nbr_points,), dtype=int)
+
+    label_dict = {}
+
+    N = 0
+    for i, label in enumerate(text_labels):
+        if label not in label_dict:
+            label_dict[label] = N
+            N += 1
+        labels[i] = label_dict[label]
+    print label_dict
+
+    means = np.zeros((N, features.shape[1]))
+
+    for l in range(0, N):
+        means[l] = np.mean(features[labels == l], axis=0)
+        features[labels == l] -= means[l]
+
+    print features
+    cov = np.cov(features.transpose())
+
+    print labels
+    print cov
+    return cov
+
 def dimension_reduction(data_path):
 
     #with open(os.path.join(data_path, "feature_labels.json")) as data_file:
@@ -20,6 +49,10 @@ def dimension_reduction(data_path):
     prior_path = os.path.join(pkg_path, "data", "prior_full_features.npz")
     priorfile = np.load(prior_path)
     prior_features = priorfile['features']
+
+    with open(os.path.join(pkg_path, "data", "feature_labels.json")) as data_file:
+        feature_labels_dict = json.load(data_file)
+    labels = feature_labels_dict['value0']
 
     npzfile = np.load(os.path.join(data_path, "deep_object_features.npz"))
     features = npzfile['features']
@@ -34,6 +67,8 @@ def dimension_reduction(data_path):
     red_all_features = tsne.fit_transform(all_features)
     red_features = red_all_features[:N]
 
+    measurement_cov = compute_covariance(red_all_features[N:], labels)
+
     print "Feature shape: ", features.shape
     print "Red all feature shape: ", red_all_features.shape
     print "Reduced shape: ", red_features.shape
@@ -41,7 +76,7 @@ def dimension_reduction(data_path):
 
     print "Done computing tsne reduction..."
 
-    np.savez(os.path.join(data_path, "reduced_object_features.npz"), features=red_features)
+    np.savez(os.path.join(data_path, "reduced_object_features.npz"), features=red_features, measurement_covariance=measurement_cov)
 
     print "Done saving..."
 

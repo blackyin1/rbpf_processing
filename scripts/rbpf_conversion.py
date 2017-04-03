@@ -14,10 +14,11 @@ def convert_observations(data_path, dummy_features):
 
     if dummy_features:
         features = np.ones((len(timestamps), 2)) + np.random.uniform(low=-.1, high=.1, size=(len(timestamps), 2))
+        measurement_covariance = np.identity(2)
     else:
         features_file = np.load(os.path.join(data_path, "reduced_object_features.npz"))
         features = features_file['features']
-
+        measurement_covariance = features_file['measurement_covariance']
 
     initialization_ids = -1*np.ones((len(timestamps),), dtype=int)
     initialization_ids[:4] = np.arange(0, 4, dtype=int)
@@ -40,7 +41,8 @@ def convert_observations(data_path, dummy_features):
                                 clouds = clouds,
                                 detection_type = objects_file['detection_type'],
                                 going_backward = objects_file['going_backward'],
-                                location_ids = objects_file['location_ids'])
+                                location_ids = objects_file['location_ids'],
+                                measurement_covariance = measurement_covariance)
 
     #print timestamps
 
