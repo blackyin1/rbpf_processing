@@ -8,7 +8,7 @@ def convert_observations(data_path, dummy_features):
 
     objects_file = np.load(os.path.join(data_path, "data_summary.npz"))
     home_path = os.path.join(os.path.expanduser("~"), ".ros")
-    observations_file = os.path.join(home_path, "detection_observations.npz")
+    observations_file = os.path.join(home_path, "various_detection_observations.npz")
 
     timestamps = objects_file['timestamps']
 
@@ -26,6 +26,7 @@ def convert_observations(data_path, dummy_features):
     spatial_positions = np.zeros((len(timestamps), 4, 2))
 
     clouds = objects_file['clouds']
+    central_images = objects_file['central_images']
 
     #for i in range(0, 100):
     #    print i, timestamps[i], clouds[i]
@@ -39,6 +40,7 @@ def convert_observations(data_path, dummy_features):
                                 spatial_measurement_std = 0.3,
                                 feature_measurement_std = 5.0,
                                 clouds = clouds,
+                                central_images = central_images,
                                 detection_type = objects_file['detection_type'],
                                 going_backward = objects_file['going_backward'],
                                 location_ids = objects_file['location_ids'],
