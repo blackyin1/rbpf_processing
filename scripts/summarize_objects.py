@@ -59,6 +59,7 @@ def summarize_objects(data_path):
     going_backward = []
     waypoint_names = []
     location_ids = []
+    dims = []
 
     for i, s in enumerate(sweeps):
         tree = ET.parse(s)
@@ -85,6 +86,8 @@ def summarize_objects(data_path):
             going_backward.append(object_dict['going_backward'])
             waypoint_names.append(room_id_element.text)
             location_ids.append(location_id)
+            dims_dict = object_dict['dims']
+            dims.append([dims_dict['value0'], dims_dict['value1'], dims_dict['value2']])
 
     for ims in images:
         central_images.append(ims[len(ims)/2])
@@ -93,6 +96,7 @@ def summarize_objects(data_path):
     timestamps = np.array(timestamps)
     going_backward = np.array(going_backward, dtype=bool)
     location_ids = np.array(location_ids, dtype=int)
+    dims = np.array(dims)
 
     print "Images: ", len(images)
     print "Clouds: ", len(clouds)
@@ -103,7 +107,7 @@ def summarize_objects(data_path):
 
     summary_path = os.path.abspath(os.path.join(data_path, "data_summary.npz"))
     np.savez(summary_path, images=images, central_images=central_images, clouds=clouds, poses=poses, detection_type=detection_type,
-                           timestamps=timestamps, going_backward=going_backward, location_ids=location_ids)
+                           timestamps=timestamps, going_backward=going_backward, location_ids=location_ids, dims=dims)
 
 if __name__ == '__main__':
 

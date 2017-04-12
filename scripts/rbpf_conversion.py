@@ -44,6 +44,7 @@ def convert_observations(data_path, dummy_features):
                                 detection_type = objects_file['detection_type'],
                                 going_backward = objects_file['going_backward'],
                                 location_ids = objects_file['location_ids'],
+                                dims = objects_file['dims'],
                                 measurement_covariance = measurement_covariance)
 
     #print timestamps
