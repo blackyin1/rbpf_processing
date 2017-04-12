@@ -122,12 +122,39 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
         Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() / Dp.row(3).array();
 
         for (size_t j = 0; j < locations.total(); ++j) {
+            // check if it's further than 0.1 from camera
+            if ((Dp.block<3, 1>(0, j) - map_pose.block<3, 1>(0, 3)).norm() < 0.1) {
+                continue;
+            }
             PointT p; p.getVector3fMap() = Dp.block<3, 1>(0, j).cast<float>();
             p.r = Pp(0, j); p.g = Pp(1, j); p.b = Pp(2, j);
             cloud->points.push_back(p);
         }
 
     }
+
+    // Placeholder for the 3x3 covariance matrix at each surface patch
+    Eigen::Matrix3f covariance_matrix;
+    // 16-bytes aligned placeholder for the XYZ centroid of a surface patch
+    Eigen::Vector4f xyz_centroid;
+    // Estimate the XYZ centroid
+    pcl::compute3DCentroid(*cloud, xyz_centroid);
+    // Compute the 3x3 covariance matrix
+    pcl::computeCovarianceMatrix(*cloud, xyz_centroid, covariance_matrix);
+    covariance_matrix = 1.0f/float(cloud->size())*covariance_matrix;
+
+    // also compute the object dimensions
+    Eigen::EigenSolver<Eigen::Matrix <float, 3, 3> > eigen_solver;
+    eigen_solver.compute(covariance_matrix);
+
+    //Eigen::EigenSolver<Eigen::Matrix <float, 3, 3> >::EigenvectorsType eigen_vectors;
+    Eigen::EigenSolver<Eigen::Matrix <float, 3, 3> >::EigenvalueType eigen_values;
+    //eigen_vectors = eigen_solver.eigenvectors();
+    eigen_values = eigen_solver.eigenvalues();
+
+    obj.dims[0] = sqrt(12.0f*eigen_values.real()(0)); // from variance of uniform distribution
+    obj.dims[1] = sqrt(12.0f*eigen_values.real()(1)); // from variance of uniform distribution
+    obj.dims[2] = sqrt(12.0f*eigen_values.real()(2)); // from variance of uniform distribution
 
     cout << "Object cloud size: " << cloud->size() << endl;
 

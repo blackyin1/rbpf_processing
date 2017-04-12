@@ -47,6 +47,8 @@ struct SegmentedObject {
     PoseVec relative_poses; // isn't this a bit unnecessary? Well, if they are registered maybe but... optional
     std::string object_folder;
 
+    double dims[3];
+
     template <class Archive>
     void save(Archive& archive) const
     {
@@ -77,7 +79,8 @@ struct SegmentedObject {
                 cereal::make_nvp("segment_folder", object_folder),
                 cereal::make_nvp("mask_paths", mask_paths),
                 cereal::make_nvp("depth_paths", depth_paths),
-                cereal::make_nvp("rgb_paths", rgb_paths));
+                cereal::make_nvp("rgb_paths", rgb_paths),
+                cereal::make_nvp("dims", dims));
 
     }
 
@@ -85,7 +88,7 @@ struct SegmentedObject {
     void load(Archive& archive)
     {
         std::vector<std::string> depth_paths, mask_paths, rgb_paths;
-        archive(object_type, going_backward, pos, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths);
+        archive(object_type, going_backward, pos, frames, relative_poses, object_folder, mask_paths, depth_paths, rgb_paths, dims);
 
         boost::filesystem::path object_path(object_folder);
 

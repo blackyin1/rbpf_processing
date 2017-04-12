@@ -320,7 +320,7 @@ pair<FrameVec, Eigen::Matrix4d> load_frames_pose(const string& path)
     return make_pair(frames, e.matrix());
 }
 
-tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, bool backwards, bool load_propagated)
+tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, bool backwards, bool load_propagated, bool load_detected)
 {
     printf("loadModels(%s)\n",path.c_str());
 
@@ -350,6 +350,9 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, boo
         objectFiles = QDir(sweep_folder.c_str()).entryList(QStringList("dynamic_obj*.xml"));
     }
     for (auto objectFile : objectFiles) {
+        if (!load_detected) {
+            break;
+        }
         objcounter++;
         string objectStr = sweep_folder+objectFile.toStdString();
         QFile file(objectStr.c_str());

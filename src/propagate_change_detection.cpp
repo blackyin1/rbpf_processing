@@ -422,7 +422,7 @@ void propagate_changes(const string& sweep_xml, bool backwards)
     FrameVec previous_frames;
     Eigen::Matrix4d previous_pose;
     // note that these objects should also, eventually include the ones that have been propagated forwards
-    tie(previous_objects, previous_frames, previous_pose) = load_objects(previous_xml, backwards, true);
+    tie(previous_objects, previous_frames, previous_pose) = load_objects(previous_xml, backwards, true, !backwards);
 
 
     ObjectVec current_objects;

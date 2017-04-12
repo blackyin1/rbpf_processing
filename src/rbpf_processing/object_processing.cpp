@@ -154,9 +154,62 @@ vector<cv::Point2f> compute_hull(vector<cv::Point2f>& points, float growth)
     return hull;
 }
 
+template <typename T>
+void remove_row(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix, unsigned int rowToRemove)
+{
+    unsigned int numRows = matrix.rows()-1;
+    unsigned int numCols = matrix.cols();
+
+    if( rowToRemove < numRows )
+        matrix.block(rowToRemove,0,numRows-rowToRemove,numCols) = matrix.block(rowToRemove+1,0,numRows-rowToRemove,numCols);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+template <typename T>
+void remove_column(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix, unsigned int colToRemove)
+{
+    unsigned int numRows = matrix.rows();
+    unsigned int numCols = matrix.cols()-1;
+
+    if( colToRemove < numCols )
+        matrix.block(0,colToRemove,numRows,numCols-colToRemove) = matrix.block(0,colToRemove+1,numRows,numCols-colToRemove);
+
+    matrix.conservativeResize(numRows,numCols);
+}
+
+template <typename T>
+void apply_permuation_matrix(Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>& matrix, const vector<std::size_t>& p)
+{
+    Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic> temp(matrix.rows(), matrix.cols());
+    for (size_t i = 0; i < matrix.rows(); ++i) {
+        for (size_t j = 0; j < matrix.cols(); ++j) {
+            temp(i, j) = matrix(p[i], p[j]);
+        }
+    }
+    matrix = temp;
+}
+
+void merge_adjacencies(Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>& adjacent, size_t i, size_t j)
+{
+    cout << "Merging " << i << " and " << j << endl;
+    cout << adjacent << endl;
+
+    // we want to delete j and merge it into i, merging with or statements
+    for (size_t k = 0; k < adjacent.rows(); ++k) {
+        adjacent(i, k) = adjacent(i, k) || adjacent(j, k);
+        adjacent(k, i) = adjacent(i, k);
+    }
+
+    remove_row(adjacent, j);
+    remove_column(adjacent, j);
+
+    cout << adjacent << endl;
+}
+
 void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls,
-                         vector<vector<cv::Point2f> >& clouds, float hull_grow,
-                         float fraction_smaller, float fraction_larger)
+                         vector<vector<cv::Point2f> >& clouds, Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>& adjacent,
+                         float hull_grow, float fraction_smaller, float fraction_larger)
 {
     size_t start_number_objects = objects.size();
 
@@ -173,6 +226,7 @@ void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls
     clouds = apply_permutation(clouds, p);
     hulls = apply_permutation(hulls, p);
     objects = apply_permutation(objects, p);
+    apply_permuation_matrix(adjacent, p);
 
     for (size_t i = 0; i < hulls.size() - 1; ++i) {
         for (size_t j = i + 1; j < clouds.size(); ++j) {
@@ -190,9 +244,12 @@ void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls
             double fraction_inside_2 = double(num_inside_2)/double(clouds[i].size());
             cout << "Fraction 1: " << fraction_inside_1 << endl;
             cout << "Fraction 2: " << fraction_inside_2 << endl;
-            if (fraction_inside_1 > fraction_smaller && fraction_inside_2 > fraction_larger) { // merge with larger object i
+            if (fraction_inside_1 > fraction_smaller &&
+                fraction_inside_2 > fraction_larger && //) { // &&
+                adjacent(i, j)) { // merge with larger object i
                 cout << "Merging " << i << " and " << j << " with fraction: " << fraction_inside_1 << endl;
                 merge_objects(objects[i], objects[j]);
+                merge_adjacencies(adjacent, i, j);
                 clouds[i].insert(clouds[i].end(), clouds[j].begin(), clouds[j].end());
                 hulls[i] = compute_hull(clouds[i], hull_grow);
                 //objects[i] = clone_merge_objects(objects[i], objects[j]);
@@ -205,8 +262,100 @@ void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls
     }
 
     if (objects.size() < start_number_objects) {
-        consolidate_objects(objects, hulls, clouds, hull_grow, fraction_smaller, fraction_larger);
+        consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger);
     }
+}
+
+Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> compute_adjacency(ObjectVec& objects)
+{
+    cout << "Computing adjacency..." << endl;
+
+    float dist_threshold = 24.0;
+
+    Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> adjacent(objects.size(), objects.size());
+    adjacent.setZero();
+
+    cout << "Computing contours..." << endl;
+
+    vector<vector<vector<cv::Point> > > mask_contours(objects.size());
+    for (size_t row = 0; row < objects.size(); ++row) {
+        for (size_t i = 0; i < objects[row].masks.size(); ++i) {
+            mask_contours[row].push_back(vector<cv::Point>{});
+            vector<vector<cv::Point> > contours;
+            cv::findContours(objects[row].masks[i], contours, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE);
+            for (const vector<cv::Point>& v : contours) {    
+                for (const cv::Point& p : v) {
+                    mask_contours[row].back().push_back(p);
+                }
+            }
+            cout << "Contours length: " << mask_contours[row].back().size() << endl;
+        }
+    }
+
+    cout << "Done computing contours..." << endl;
+
+    for (size_t row = 0; row < objects.size(); ++row) {
+        for (size_t col = 0; col < row; ++col) {
+            // check if the masks of any frame are adjacent
+
+            adjacent(row, col) = false;
+
+            float minval = 10000.0;
+
+            size_t i = 0; size_t j = 0;
+            while (i < objects[row].frames.size() && j < objects[col].frames.size()) {
+                if (objects[row].frames[i] < objects[col].frames[j]) {
+                    ++i;
+                    continue;
+                }
+                else if (objects[row].frames[i] > objects[col].frames[j]) {
+                    ++j;
+                    continue;
+                }
+
+                if (mask_contours[row][i].empty() || mask_contours[col][j].empty()) { // no object in either frame
+                    ++i;
+                    ++j;
+                    continue;
+                }
+
+                // find minimum distance between masks
+                for (const cv::Point& p : mask_contours[row][i]) {
+                    auto iter = std::find_if(mask_contours[col][j].begin(), mask_contours[col][j].end(), [&](const cv::Point& q) {
+                        return cv::norm(p-q) < dist_threshold;//float((p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)) < dist_threshold*dist_threshold;
+                    });
+                    auto iter2 = std::min_element(mask_contours[col][j].begin(), mask_contours[col][j].end(), [&](const cv::Point& q1, const cv::Point& q2) {
+                        return cv::norm(p-q1) < cv::norm(p-q2);//float((p.x-q.x)*(p.x-q.x) + (p.y-q.y)*(p.y-q.y)) < dist_threshold*dist_threshold;
+                    });
+                    if (minval > cv::norm(p-*iter2)) {
+                        minval = cv::norm(p-*iter2);
+                    }
+                    if (iter != mask_contours[col][j].end()) {
+                        adjacent(row, col) = true;
+                        break;
+                    }
+                }
+
+                if (adjacent(row, col)) {
+                    break;
+                }
+
+                ++i;
+                ++j;
+            }
+
+            cout << "Min distance " << " between object " << row << " and " << col << ": " << minval << endl;
+
+            adjacent(col, row) = adjacent(row, col);
+        }
+    }
+
+    cout << "Adjacency matrix: " << endl;
+    cout << adjacent << endl;
+
+    cout << "Done computing adjacency..." << endl;
+
+    return adjacent;
 }
 
 // here we assume that they are already not overlapping
@@ -219,6 +368,7 @@ void consolidate_objects(ObjectVec& objects, FrameVec& frames,
 {
     vector<vector<cv::Point2f> > hulls;
     vector<vector<cv::Point2f> > clouds;
+    Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> adjacent = compute_adjacency(objects);
 
     // ok, first convert all of the objects into matrix point clouds
     for (SegmentedObject& obj : objects) {
@@ -231,5 +381,5 @@ void consolidate_objects(ObjectVec& objects, FrameVec& frames,
         clouds.push_back(points);
     }
 
-    consolidate_objects(objects, hulls, clouds, hull_grow, fraction_smaller, fraction_larger);
+    consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger);
 }
