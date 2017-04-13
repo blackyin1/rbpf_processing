@@ -7,8 +7,8 @@ import sys
 def convert_observations(data_path, dummy_features):
 
     objects_file = np.load(os.path.join(data_path, "data_summary.npz"))
-    home_path = os.path.join(os.path.expanduser("~"), ".ros")
-    observations_file = os.path.join(home_path, "various_detection_observations.npz")
+    #home_path = os.path.join(os.path.expanduser("~"), ".ros")
+    observations_file = os.path.join(data_path, "detection_observations.npz")
 
     timestamps = objects_file['timestamps']
 
