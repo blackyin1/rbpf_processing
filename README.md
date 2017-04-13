@@ -17,3 +17,32 @@ Four times a day, visit the following nodes:
 * WayPoint17 - a bit down the hallway
 * WayPoint16 - the end of the hallway
 * WayPoint4 - large office at end of hallway
+
+## Commands to run to process the data
+```
+rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -resegment -files /path/to/data
+```
+```
+rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -backwards -resegment -files /path/to/data
+```
+```
+rosrun rbpf_processing rbpf_propagation.py /path/to/data
+```
+```
+rosrun rbpf_processing rbpf_propagation.py /path/to/data --backwards
+```
+```
+rosrun rbpf_processing cluster_objects.py /path/to/data
+```
+```
+rosrun rbpf_processing summarize_objects.py /path/to/data
+```
+```
+rosrun rbpf_processing extract_features.py /path/to/data
+```
+```
+rosrun rbpf_processing reduce_features.py /path/to/data
+```
+```
+rosrun rbpf_processing rbpf_conversion.py /path/to/data
+```
