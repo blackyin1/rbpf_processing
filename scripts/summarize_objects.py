@@ -8,6 +8,7 @@ import subprocess
 import json
 import numpy as np
 import xml.etree.ElementTree as ET
+from os.path import relpath
 #import natsort
 
 def sortkey_natural(s):
@@ -71,6 +72,8 @@ def summarize_objects(data_path):
         print s
         objects = get_objects(s)
         for o in objects:
+            rel_path = relpath(o, data_path)
+            #print rel_path
             print i, o
             object_file = os.path.join(o, "segmented_object.json")
             if not os.path.exists(object_file):
@@ -78,8 +81,8 @@ def summarize_objects(data_path):
                 continue
             with open(object_file) as data_file:
                 object_dict = json.load(data_file)['object']
-            clouds.append(str(os.path.join(o, "cloud.pcd")))
-            images.append([os.path.join(o, im) for im in object_dict['rgb_paths']])
+            clouds.append(str(os.path.join(rel_path, "cloud.pcd")))
+            images.append([os.path.join(rel_path, im) for im in object_dict['rgb_paths']])
             poses.append(object_dict['pos']['value2'])
             detection_type.append(object_dict['object_type'])
             timestamps.append(i)

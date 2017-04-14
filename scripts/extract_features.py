@@ -56,6 +56,8 @@ def load_and_extract(model_path, data_path):
     npzfile = np.load(os.path.join(data_path, "data_summary.npz"))
     images = npzfile['central_images']
 
+    images = [os.path.join(data_path, im) for im in images]
+
     print images
     print "Extracting features"
 

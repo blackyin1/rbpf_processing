@@ -17,6 +17,52 @@ using CloudT = pcl::PointCloud<PointT>;
 using PathT = boost::filesystem::path;
 using RoomT = SimpleXMLParser<PointT>::RoomData;
 
+static const int colormap[][3] = {
+    {166,206,227},
+    {31,120,180},
+    {178,223,138},
+    {51,160,44},
+    {251,154,153},
+    {227,26,28},
+    {253,191,111},
+    {255,127,0},
+    {202,178,214},
+    {106,61,154},
+    {255,255,153},
+    {177,89,40},
+    {141,211,199},
+    {255,255,179},
+    {190,186,218},
+    {251,128,114},
+    {128,177,211},
+    {253,180,98},
+    {179,222,105},
+    {252,205,229},
+    {217,217,217},
+    {188,128,189},
+    {204,235,197},
+    {255,237,111},
+    {255, 179, 0},
+    {128, 62, 117},
+    {255, 104, 0},
+    {166, 189, 215},
+    {193, 0, 32},
+    {206, 162, 98},
+    {0, 125, 52},
+    {246, 118, 142},
+    {0, 83, 138},
+    {255, 122, 92},
+    {83, 55, 122},
+    {255, 142, 0},
+    {179, 40, 81},
+    {244, 200, 0},
+    {127, 24, 13},
+    {147, 170, 0},
+    {89, 51, 21},
+    {241, 58, 19},
+    {35, 44, 22}
+};
+
 class CloudObservationLoader {
 
 public:
@@ -58,6 +104,7 @@ public:
         PathT sweep_path;
 
         CloudT complete_cloud;
+        size_t counter = 0;
         for (const string& path : paths) {
 
             PathT current_path = PathT(path).parent_path().parent_path().parent_path();
@@ -71,7 +118,13 @@ public:
 
             CloudT cloud;
             pcl::io::loadPCDFile(path, cloud);
+            for (PointT& p : cloud.points) {
+                p.r = colormap[counter % 43][2];
+                p.g = colormap[counter % 43][1];
+                p.b = colormap[counter % 43][0];
+            }
             complete_cloud += cloud;
+            ++counter;
         }
 
         sensor_msgs::PointCloud2 cloud_msg;
