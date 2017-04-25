@@ -19,6 +19,7 @@ Four times a day, visit the following nodes:
 * WayPoint4 - large office at end of hallway
 
 ## Commands to run to process the data
+First, put a symlink in your home folder: `ln -s /path/to/data .semanticMap`, and then, in order:
 ```
 rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -resegment -files /path/to/data
 ```
