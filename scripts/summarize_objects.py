@@ -11,6 +11,8 @@ import xml.etree.ElementTree as ET
 from os.path import relpath
 #import natsort
 
+waypoint_to_location_id = {}
+
 def sortkey_natural(s):
     return tuple(int(part) if re.match(r'[0-9]+$', part) else part for part in re.split(r'([0-9]+)', s))
 
@@ -47,7 +49,14 @@ def get_trailing_number(s):
     m = re.search(r'\d+$', s)
     return int(m.group()) if m else None
 
-def summarize_objects(data_path):
+def get_unique_location_id(s):
+    if s in waypoint_to_location_id:
+        return waypoint_to_location_id[s]
+    else:
+        waypoint_to_location_id[s] = len(waypoint_to_location_id)
+        return waypoint_to_location_id[s]
+
+def summarize_objects(data_path, generate_location_ids):
 
     sweeps = get_sweep_xmls(data_path)
 
@@ -66,7 +75,10 @@ def summarize_objects(data_path):
         tree = ET.parse(s)
         root = tree.getroot()
         room_id_element = root.find("RoomStringId")
-        location_id = get_trailing_number(room_id_element.text)
+        if generate_location_ids:
+            location_id = get_unique_location_id(room_id_element.text)
+        else:
+            location_id = get_trailing_number(room_id_element.text)
         print room_id_element.text
         print location_id
         print s
@@ -114,7 +126,9 @@ def summarize_objects(data_path):
 
 if __name__ == '__main__':
 
-    if len(sys.argv) < 2:
-        print "Usage: ", sys.argv[0], " path/to/data"
+    if len(sys.argv) == 2:
+        summarize_objects(sys.argv[1], False)
+    elif len(sys.argv) == 3 and sys.argv[2] == "--generate_location_ids":
+        summarize_objects(sys.argv[1], True)
     else:
-        summarize_objects(sys.argv[1])
+        print "Usage: ", sys.argv[0], " path/to/data (--generate_location_ids)"
