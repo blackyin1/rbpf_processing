@@ -116,6 +116,9 @@ void consolidate_detections(const string& sweep_xml, bool visualize)
     // load all objects and transforms in this sweep that are saved in my format
 
     ObjectVec objects = load_propagated_objects(sweep_xml);
+    if (objects.empty()) {
+        return;
+    }
     FrameVec frames;
     Eigen::Matrix4d map_pose;
     tie(frames, map_pose) = load_frames_pose(sweep_xml);
