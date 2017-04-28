@@ -227,6 +227,7 @@ void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls
     hulls = apply_permutation(hulls, p);
     objects = apply_permutation(objects, p);
     apply_permuation_matrix(adjacent, p);
+    apply_permutation(consolidated_indices, p);
 
     for (size_t i = 0; i < hulls.size() - 1; ++i) {
         for (size_t j = i + 1; j < clouds.size(); ++j) {
