@@ -122,6 +122,10 @@ void consolidate_raw_detections(const string& sweep_xml, bool visualize)
     // note that these objects should also, eventually include the ones that have been propagated forwards
     tie(objects, frames, map_pose) = load_objects(sweep_xml, false, false, true);
 
+    if (objects.empty()) {
+        return;
+    }
+
     vector<Eigen::Matrix<double, 3, Eigen::Dynamic>, Eigen::aligned_allocator<Eigen::Matrix<double, 3, Eigen::Dynamic> > > clouds_before;
     if (visualize) {
         // look at how it looked before merging
