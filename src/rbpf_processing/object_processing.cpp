@@ -209,7 +209,7 @@ void merge_adjacencies(Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>& adja
 
 void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls,
                          vector<vector<cv::Point2f> >& clouds, Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic>& adjacent,
-                         float hull_grow, float fraction_smaller, float fraction_larger)
+                         float hull_grow, float fraction_smaller, float fraction_larger, vector<vector<size_t> >& consolidated_indices)
 {
     size_t start_number_objects = objects.size();
 
@@ -253,16 +253,18 @@ void consolidate_objects(ObjectVec& objects, vector<vector<cv::Point2f> >& hulls
                 clouds[i].insert(clouds[i].end(), clouds[j].begin(), clouds[j].end());
                 hulls[i] = compute_hull(clouds[i], hull_grow);
                 //objects[i] = clone_merge_objects(objects[i], objects[j]);
+                consolidated_indices[i].insert(consolidated_indices[i].end(), consolidated_indices[j].begin(), consolidated_indices[j].end());
                 hulls.erase(hulls.begin() + j);
                 clouds.erase(clouds.begin() + j);
                 objects.erase(objects.begin() + j);
+                consolidated_indices.erase(consolidated_indices.begin() + j);
                 --j;
             }
         }
     }
 
     if (objects.size() < start_number_objects) {
-        consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger);
+        consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger, consolidated_indices);
     }
 }
 
@@ -362,15 +364,17 @@ Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> compute_adjacency(ObjectVec&
 // we simply just find sort the objects based on size
 // and check if any of the objects are within the convex
 // hull in xy-plane or close to it among any of the smaller objects
-void consolidate_objects(ObjectVec& objects, FrameVec& frames,
-                         const Eigen::Matrix4d& map_pose, float hull_grow,
-                         float fraction_smaller, float fraction_larger)
+vector<vector<size_t> > consolidate_objects(ObjectVec& objects, FrameVec& frames,
+                                            const Eigen::Matrix4d& map_pose, float hull_grow,
+                                            float fraction_smaller, float fraction_larger)
 {
     vector<vector<cv::Point2f> > hulls;
     vector<vector<cv::Point2f> > clouds;
     Eigen::Matrix<bool, Eigen::Dynamic, Eigen::Dynamic> adjacent = compute_adjacency(objects);
 
+    vector<vector<size_t> > consolidated_indices;
     // ok, first convert all of the objects into matrix point clouds
+    size_t counter = 0;
     for (SegmentedObject& obj : objects) {
         Eigen::Matrix<double, 3, Eigen::Dynamic> cloud = compute_object_cloud(obj, frames, map_pose);
         vector<cv::Point2f> points;
@@ -379,7 +383,11 @@ void consolidate_objects(ObjectVec& objects, FrameVec& frames,
         }
         hulls.push_back(compute_hull(points, hull_grow));
         clouds.push_back(points);
+        consolidated_indices.push_back(vector<size_t> {counter});
+        ++counter;
     }
 
-    consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger);
+    consolidate_objects(objects, hulls, clouds, adjacent, hull_grow, fraction_smaller, fraction_larger, consolidated_indices);
+
+    return consolidated_indices;
 }

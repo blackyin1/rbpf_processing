@@ -154,6 +154,7 @@ add_executable(propagate_change_detection src/propagate_change_detection.cpp)
 add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
 add_executable(visualize_segmentation_surfels src/visualize_segmentation_surfels.cpp)
 add_executable(consolidate_detections src/consolidate_detections.cpp)
+add_executable(consolidate_raw_detections src/consolidate_raw_detections.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -244,6 +245,15 @@ target_link_libraries(consolidate_detections
   ${PCL_LIBRARIES}
 )
 
+target_link_libraries(consolidate_raw_detections
+  data_convenience
+  xml_convenience
+  object_processing
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
 #############
 ## Install ##
 #############
