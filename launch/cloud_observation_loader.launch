@@ -1,9 +1,12 @@
 <launch>
 
+    <arg name="color_clouds" default="true"/>
+
     <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_detection_loader" output="screen" respawn="true">
         <remap from="cloud_paths" to="backward_detected_paths"/>
         <remap from="measurement_clouds" to="backward_detected_clouds"/>
         <remap from="complete_cloud" to="complete_cloud"/>
+        <param name="color_clouds" value="$(arg color_clouds)"/>
     </node>
 
     <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_detection_loader" output="screen" respawn="true">
@@ -11,6 +14,7 @@
         <remap from="measurement_clouds" to="forward_detected_clouds"/>
         <remap from="complete_cloud" to="forward_complete_cloud"/>
         <param name="load_rooms" value="false"/>
+        <param name="color_clouds" value="$(arg color_clouds)"/>
     </node>
 
     <node pkg="rbpf_processing" type="cloud_observation_loader" name="backward_propagation_loader" output="screen" respawn="true">
@@ -18,6 +22,7 @@
         <remap from="measurement_clouds" to="backward_propagated_clouds"/>
         <remap from="complete_cloud" to="back_prop_complete_cloud"/>
         <param name="load_rooms" value="false"/>
+        <param name="color_clouds" value="$(arg color_clouds)"/>
     </node>
 
     <node pkg="rbpf_processing" type="cloud_observation_loader" name="forward_propagation_loader" output="screen" respawn="true">
@@ -25,6 +30,7 @@
         <remap from="measurement_clouds" to="forward_propagated_clouds"/>
         <remap from="complete_cloud" to="forward_prop_complete_cloud"/>
         <param name="load_rooms" value="false"/>
+        <param name="color_clouds" value="$(arg color_clouds)"/>
     </node>
 
     <node pkg="rbpf_processing" type="cloud_observation_loader" name="init_propagation_loader" output="screen" respawn="true">
@@ -32,6 +38,7 @@
         <remap from="measurement_clouds" to="init_clouds"/>
         <remap from="complete_cloud" to="init_complete_cloud"/>
         <param name="load_rooms" value="false"/>
+        <param name="color_clouds" value="$(arg color_clouds)"/>
     </node>
 
 </launch>

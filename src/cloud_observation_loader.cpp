@@ -72,11 +72,13 @@ public:
     ros::Publisher pub;
     ros::Publisher sweep_pub;
     bool load_rooms;
+    bool color_clouds;
 
     CloudObservationLoader() : n()
     {
         ros::NodeHandle pn("~");
         pn.param<bool>("load_rooms", load_rooms, true);
+        pn.param<bool>("color_clouds", color_clouds, true);
         pub = n.advertise<sensor_msgs::PointCloud2>("measurement_clouds", 50);
         sweep_pub = n.advertise<sensor_msgs::PointCloud2>("complete_cloud", 50);
         sub = n.subscribe("cloud_paths", 50, &CloudObservationLoader::callback, this);
@@ -118,10 +120,12 @@ public:
 
             CloudT cloud;
             pcl::io::loadPCDFile(path, cloud);
-            for (PointT& p : cloud.points) {
-                p.r = colormap[counter % 43][2];
-                p.g = colormap[counter % 43][1];
-                p.b = colormap[counter % 43][0];
+            if (color_clouds) {
+                for (PointT& p : cloud.points) {
+                    p.r = colormap[counter % 43][2];
+                    p.g = colormap[counter % 43][1];
+                    p.b = colormap[counter % 43][0];
+                }
             }
             complete_cloud += cloud;
             ++counter;
