@@ -350,6 +350,7 @@ tuple<ObjectVec, FrameVec, Eigen::Matrix4d> load_objects(const string& path, boo
         objectFiles = QDir(sweep_folder.c_str()).entryList(QStringList("dynamic_obj*.xml"));
     }
     for (auto objectFile : objectFiles) {
+        cout << objectFile.toStdString() << endl;
         if (!load_detected) {
             break;
         }
