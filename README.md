@@ -21,10 +21,10 @@ Four times a day, visit the following nodes:
 ## Commands to run to process the data
 First, put a symlink in your home folder: `ln -s /path/to/data .semanticMap`, and then, in order:
 ```
-rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -resegment -files /path/to/data
+rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -resegment -files /path/to/data -folder /path/to/data
 ```
 ```
-rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -backwards -resegment -files /path/to/data
+rosrun quasimodo_brain metaroom_additional_view_processing -once -notSendPrev -backwards -resegment -files /path/to/data -folder /path/to/data
 ```
 ```
 rosrun rbpf_processing rbpf_propagation.py /path/to/data
