@@ -113,8 +113,8 @@ endif()
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES rbpf_mtt
+  INCLUDE_DIRS include
+  LIBRARIES data_convenience object_processing xml_convenience
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -153,6 +153,7 @@ add_executable(visualize_registered_sweeps src/visualize_registered_sweeps.cpp)
 add_executable(propagate_change_detection src/propagate_change_detection.cpp)
 add_executable(cloud_observation_loader src/cloud_observation_loader.cpp)
 add_executable(visualize_segmentation_surfels src/visualize_segmentation_surfels.cpp)
+add_executable(visualize_dynamic_objects test/visualize_dynamic_objects.cpp)
 add_executable(consolidate_detections src/consolidate_detections.cpp)
 add_executable(consolidate_raw_detections src/consolidate_raw_detections.cpp)
 
@@ -227,6 +228,15 @@ target_link_libraries(cloud_observation_loader
 )
 
 target_link_libraries(visualize_segmentation_surfels
+  data_convenience
+  xml_convenience
+  ${OpenCV_LIBS}
+  ${QT_QTMAIN_LIBRARY} ${QT_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${PCL_LIBRARIES}
+)
+
+target_link_libraries(visualize_dynamic_objects
   data_convenience
   xml_convenience
   ${OpenCV_LIBS}

@@ -51,9 +51,9 @@ def extract_features(image_paths, verbose=False):
 
     return features
 
-def load_and_extract(model_path, data_path):
+def load_and_extract(model_path, data_path, data_summary):
 
-    npzfile = np.load(os.path.join(data_path, "data_summary.npz"))
+    npzfile = np.load(os.path.join(data_path, data_summary))
     images = npzfile['central_images']
 
     images = [os.path.join(data_path, im) for im in images]
@@ -72,7 +72,9 @@ if __name__ == '__main__':
 
     model_path = "/home/nbore/instance_places/catkin_ws/src/rbpf_processing/inception/tensorflow_inception_graph.pb"
 
-    if len(sys.argv) < 2:
-        print "Usage: ", sys.argv[0], " path/to/data"
+    if len(sys.argv) == 2:
+        load_and_extract(model_path, sys.argv[1], "data_summary.npz")
+    elif len(sys.argv) == 4 and sys.argv[2] == "--summary":
+        load_and_extract(model_path, sys.argv[1], sys.argv[3])
     else:
-        load_and_extract(model_path, sys.argv[1])
+        print "Usage: ", sys.argv[0], " path/to/data"

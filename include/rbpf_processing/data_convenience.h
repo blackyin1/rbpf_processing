@@ -109,6 +109,8 @@ using ObjectVec = std::vector<SegmentedObject>;
 void add_cropped_rgb_to_object(SegmentedObject& obj, FrameVec& frames);
 void add_pos_to_object(SegmentedObject& obj, FrameVec& frames, const Eigen::Matrix4d& map_pose);
 PoseVec load_transforms_for_data(SweepT& data);
+CloudT::Ptr get_object_cloud(SegmentedObject& obj, FrameVec& frames,
+                             const Eigen::Matrix4d& map_pose);
 CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
                               const Eigen::Matrix4d& map_pose,
                               const std::string& object_path);
@@ -116,7 +118,7 @@ void save_complete_propagated_cloud(std::vector<CloudT::Ptr>& clouds, const std:
 void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& map_pose,
                   const std::string& sweep_xml, bool backwards, bool save_cloud = true);
 void save_complete_objects(ObjectVec& objects, FrameVec& frames,
-                           const Eigen::Matrix4d& map_pose, const std::string& sweep_xml);
+                           const Eigen::Matrix4d& map_pose, const std::string& sweep_xml, const std::string& object_folder = "consolidated_object");
 ObjectVec load_propagated_objects(const std::string& sweep_xml, bool do_filter = false, bool backwards = false);
 
 #endif // DATA_CONVENIENCE_H

@@ -68,35 +68,12 @@ PoseVec load_transforms_for_data(SweepT& data)
     return transforms;
 }
 
-CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
-                              const Eigen::Matrix4d& map_pose,
-                              const string& object_path)
+CloudT::Ptr get_object_cloud(SegmentedObject& obj, FrameVec& frames,
+                             const Eigen::Matrix4d& map_pose)
 {
     double scaling = 1000.0;
 
-    /*
-    double max_pix = 0;
-    size_t max_ind = 0;
-    for (size_t i = 0; i < obj.frames.size(); ++i) {
-        double pix = cv::sum(obj.masks[i])[0]/255.0;
-        if (pix > max_pix) {
-            max_pix = pix;
-            max_ind = i;
-        }
-    }
-
-    cv::Mat locations;   // output, locations of non-zero pixels
-    cv::findNonZero(obj.masks[max_ind], locations);
-    Eigen::Matrix<double, 4, Eigen::Dynamic> Dp(4, locations.total());
-    Eigen::Matrix<int, 3, Eigen::Dynamic> Pp(3, locations.total());
-    Dp.row(2).setOnes();
-
-    cout << "Found nonzero with size " << locations.rows << "x" << locations.cols << ", type: " << locations.type() << endl;
-    */
-
     CloudT::Ptr cloud(new CloudT);
-
-    cout << "Saving object with " << obj.frames.size() << " frames..." << endl;
 
     for (size_t i = 0; i < obj.frames.size(); ++i) {
 
@@ -115,6 +92,8 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
             Dp(3, j) = double(frames[obj.frames[i]].depth.at<uint16_t>(p.y, p.x))/scaling;
         }
 
+        cout << "Camera matrix: \n" << frames[obj.frames[i]].K << endl;
+
         Dp.topRows<3>() = Kinv*Dp.topRows<3>();
         Dp.topRows<3>() = Dp.topRows<3>().array().rowwise() * (Dp.row(3).array() / Dp.row(2).array());
         Dp.row(3).setOnes();
@@ -132,6 +111,21 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
         }
 
     }
+
+    cout << "Object cloud size: " << cloud->size() << endl;
+
+    return cloud;
+}
+
+CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
+                              const Eigen::Matrix4d& map_pose,
+                              const string& object_path)
+{
+    cout << "Saving object with " << obj.frames.size() << " frames..." << endl;
+
+    CloudT::Ptr cloud = get_object_cloud(obj, frames, map_pose);
+
+    pcl::io::savePCDFileBinary((PathT(object_path) / "cloud.pcd").string(), *cloud);
 
     // Placeholder for the 3x3 covariance matrix at each surface patch
     Eigen::Matrix3f covariance_matrix;
@@ -155,10 +149,6 @@ CloudT::Ptr save_object_cloud(SegmentedObject& obj, FrameVec& frames,
     obj.dims[0] = sqrt(12.0f*eigen_values.real()(0)); // from variance of uniform distribution
     obj.dims[1] = sqrt(12.0f*eigen_values.real()(1)); // from variance of uniform distribution
     obj.dims[2] = sqrt(12.0f*eigen_values.real()(2)); // from variance of uniform distribution
-
-    cout << "Object cloud size: " << cloud->size() << endl;
-
-    pcl::io::savePCDFileBinary((PathT(object_path) / "cloud.pcd").string(), *cloud);
 
     return cloud;
 }
@@ -250,7 +240,7 @@ void save_objects(ObjectVec& objects, FrameVec& frames, const Eigen::Matrix4d& m
 }
 
 void save_complete_objects(ObjectVec& objects, FrameVec& frames,
-                           const Eigen::Matrix4d& map_pose, const string& sweep_xml)
+                           const Eigen::Matrix4d& map_pose, const string& sweep_xml, const string& object_folder)
 {
     if (objects.empty()) {
         return;
@@ -258,7 +248,7 @@ void save_complete_objects(ObjectVec& objects, FrameVec& frames,
 
     cout << "Saving objects, creating directory..." << endl;
 
-    PathT objects_path = PathT(sweep_xml).parent_path() / "consolidated_objects";
+    PathT objects_path = PathT(sweep_xml).parent_path() / object_folder;
     if (boost::filesystem::exists(objects_path)) {
         boost::filesystem::remove_all(objects_path);
     }

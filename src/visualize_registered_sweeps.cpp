@@ -19,7 +19,7 @@ using PathT = boost::filesystem::path;
 using PoseVec = vector<Eigen::Matrix4d, Eigen::aligned_allocator<Eigen::Matrix4d> >;
 using SweepT = semantic_map_load_utilties::IntermediateCloudCompleteData<PointT>;
 
-void visualize_sweep_registration(const string& sweep_xml, bool backwards)
+void visualize_sweep_registration(const string& sweep_xml, bool backwards, bool only_one)
 {
     PoseVec current_transforms;
     string previous_xml;
@@ -33,10 +33,12 @@ void visualize_sweep_registration(const string& sweep_xml, bool backwards)
 
     CloudT::Ptr combined_cloud(new CloudT);
 
-    for (size_t i = 0; i < previous_transforms.size(); ++i) {
-        CloudT::Ptr transformed_cloud(new CloudT);
-        pcl::transformPointCloud(*previous_data.vIntermediateRoomClouds[i], *transformed_cloud, previous_transforms[i]);
-        *combined_cloud += *transformed_cloud;
+    if (!only_one) {
+        for (size_t i = 0; i < previous_transforms.size(); ++i) {
+            CloudT::Ptr transformed_cloud(new CloudT);
+            pcl::transformPointCloud(*previous_data.vIntermediateRoomClouds[i], *transformed_cloud, previous_transforms[i]);
+            *combined_cloud += *transformed_cloud;
+        }
     }
 
     for (size_t i = 0; i < current_transforms.size(); ++i) {
@@ -59,6 +61,48 @@ void visualize_sweep_registration(const string& sweep_xml, bool backwards)
     }
 }
 
+bool compare_nat(const std::string& a, const std::string& b)
+{
+    if (a.empty())
+        return true;
+    if (b.empty())
+        return false;
+    if (std::isdigit(a[0]) && !std::isdigit(b[0]))
+        return true;
+    if (!std::isdigit(a[0]) && std::isdigit(b[0]))
+        return false;
+    if (!std::isdigit(a[0]) && !std::isdigit(b[0]))
+    {
+        if (std::toupper(a[0]) == std::toupper(b[0]))
+            return compare_nat(a.substr(1), b.substr(1));
+        return (std::toupper(a[0]) < std::toupper(b[0]));
+    }
+
+    // Both strings begin with digit --> parse both numbers
+    std::istringstream issa(a);
+    std::istringstream issb(b);
+    int ia, ib;
+    issa >> ia;
+    issb >> ib;
+    if (ia != ib)
+        return ia < ib;
+
+    // Numbers are the same --> remove numbers and recurse
+    std::string anew, bnew;
+    std::getline(issa, anew);
+    std::getline(issb, bnew);
+    return (compare_nat(anew, bnew));
+}
+
+void print_sweep_order(const string& data_path)
+{
+    std::vector<std::string> sweep_xmls = semantic_map_load_utilties::getSweepXmls<PointT>(data_path);
+    std::sort(sweep_xmls.begin(), sweep_xmls.end(), compare_nat);
+    for (const string& s : sweep_xmls) {
+        cout << s << endl;
+    }
+}
+
 int main(int argc, char** argv)
 {
     bool backwards = false;
@@ -67,13 +111,15 @@ int main(int argc, char** argv)
         return 0;
     }
     else if (argc == 3) {
-        if (string(argv[2]) == "--backwards") {
+        /*if (string(argv[2]) == "--backwards") {
             backwards = true;
-        }
+        }*/
+        print_sweep_order(argv[1]);
+        return 0;
     }
 
     string sweep_xml(argv[1]);
-    visualize_sweep_registration(sweep_xml, backwards);
+    visualize_sweep_registration(sweep_xml, backwards, false);
 
     return 0;
 }

@@ -295,10 +295,15 @@ pair<FrameVec, PoseVec> load_frames_poses(RoomT& data)
         frame.depth = data.vIntermediateDepthImages[i]; // images.second;
         //cout << "Depth image size: " << frame.depth.rows << "x" << frame.depth.cols << endl;
         frame.pose = e.matrix();
-        image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParams[0];
-        //image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParamsCorrected[0];
-        cv::Matx33d cvK = model.intrinsicMatrix();
-        frame.K = Eigen::Map<Eigen::Matrix3d>(cvK.val).transpose();
+        // NOTE: this does not work for the old data!!!!!!!!!
+        //image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParams[0];
+        //cv::Matx33d cvK = model.intrinsicMatrix();
+        //frame.K = Eigen::Map<Eigen::Matrix3d>(cvK.val).transpose();
+
+        image_geometry::PinholeCameraModel model = data.vIntermediateRoomCloudCamParamsCorrected[0];
+        cv::Matx34d cvK = model.projectionMatrix();
+        frame.K = Eigen::Map<Eigen::Matrix<double, 4, 3> >(cvK.val).transpose().block<3, 3>(0, 0);
+
         frames.push_back(frame);
     }
 
